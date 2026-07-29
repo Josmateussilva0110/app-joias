@@ -1,101 +1,220 @@
-import { View, Text, StyleSheet, useWindowDimensions } from "react-native";
-import { Gem } from "lucide-react-native";
+import { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  RefreshControl,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { Plus, Gem } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { AppShell } from "@/components/appShell";
-import { ScreenWrapper } from "@/components/layout/screen-wrapper";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/use-profile";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { ProductListItem } from "@/features/products/components/product-list-item";
+import { ProductsSummary } from "@/features/products/components/products-summary";
+import { ProductsFilters } from "@/features/products/components/products-filters";
+import {
+  getDefaultProductFilters,
+  toListProductsQuery,
+} from "@/features/products/utils/filter-products";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useProducts } from "@/hooks/use-products";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { width } = useWindowDimensions();
-  const { user } = useAuth();
-  const { data: profile } = useProfile();
+  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const [filters, setFilters] = useState(getDefaultProductFilters);
+  const debouncedCustomerName = useDebouncedValue(filters.customerName, 400);
 
-  const displayName =
-    profile?.username ??
-    user?.email?.split("@")[0] ??
-    "visitante";
+  const queryFilters = useMemo(
+    () =>
+      toListProductsQuery({
+        ...filters,
+        customerName: debouncedCustomerName,
+      }),
+    [filters, debouncedCustomerName]
+  );
+
+  const { data, isLoading, isError, error, refetch, isRefetching } =
+    useProducts(queryFilters);
+
+  const horizontalPadding = width < 380 ? 16 : 24;
+  const products = data?.items ?? [];
+  const summary = data?.summary ?? { count: 0, total: 0 };
+  const hasAnyProduct = data?.has_any ?? false;
+  const isInitialLoading = isLoading && !data;
+
+  if (isInitialLoading) {
+    return (
+      <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+        <LoadingState message="Carregando vendas..." />
+      </AppShell>
+    );
+  }
+
+  if (isError) {
+    return (
+      <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+        <ErrorState
+          error={error?.message ?? "Não foi possível carregar as vendas."}
+          onRetry={() => refetch()}
+        />
+      </AppShell>
+    );
+  }
 
   return (
-    <AppShell
-      title="Início"
-      subtitle={APP_NAME}
-      showSettings
-    >
-      <ScreenWrapper
-        style={{
-          paddingHorizontal: width < 380 ? 16 : 24,
-          paddingTop: 24,
-        }}
-      >
-        <View style={[styles.content, { maxWidth: width >= 768 ? 520 : 420 }]}>
-          <View style={styles.heroCard}>
-            <View style={styles.iconWrap}>
-              <Gem size={28} color={colors.primary} strokeWidth={1.75} />
-            </View>
+    <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+      <View style={styles.container}>
+        <FlatList
+          data={products}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <ProductListItem product={item} />}
+          contentContainerStyle={[
+            styles.listContent,
+            {
+              paddingHorizontal: horizontalPadding,
+              paddingBottom: 120 + insets.bottom,
+            },
+            !hasAnyProduct && styles.listContentEmpty,
+          ]}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+          ListHeaderComponent={
+            hasAnyProduct ? (
+              <View style={styles.header}>
+                <ProductsSummary summary={summary} />
+                <ProductsFilters
+                  filters={filters}
+                  availableYears={data?.available_years}
+                  onChange={setFilters}
+                />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            hasAnyProduct ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>Nenhuma venda encontrada</Text>
+                <Text style={styles.emptyDescription}>
+                  Ajuste os filtros de cliente, categoria, pagamento, mês ou ano.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <View style={styles.emptyIconWrap}>
+                  <Gem size={28} color={colors.emptyIcon} strokeWidth={1.75} />
+                </View>
+                <Text style={styles.emptyTitle}>Nenhuma venda ainda</Text>
+                <Text style={styles.emptyDescription}>
+                  Toque no botão + para registrar sua primeira venda de joias.
+                </Text>
+              </View>
+            )
+          }
+        />
 
-            <Text style={styles.greeting}>Olá, {displayName}</Text>
-            <Text style={styles.message}>
-              Bem-vindo ao seu painel de vendas de joias.
-            </Text>
-          </View>
-
-          <Text style={styles.hint}>
-            Em breve você poderá registrar vendas, clientes e pagamentos por aqui.
-          </Text>
-        </View>
-      </ScreenWrapper>
+        <TouchableOpacity
+          onPress={() => router.push("/(protected)/products/new")}
+          activeOpacity={0.9}
+          style={[styles.fab, { bottom: 24 + insets.bottom }]}
+        >
+          <LinearGradient
+            colors={[colors.fabGradientStart, colors.fabGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.fabGradient}
+          >
+            <Plus size={28} color={colors.onPrimary} strokeWidth={2.5} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </View>
     </AppShell>
   );
 }
 
 const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
-    content: {
-      width: "100%",
-      alignSelf: "center",
-      gap: 20,
+    container: {
+      flex: 1,
     },
-    heroCard: {
-      borderWidth: 1,
-      borderRadius: 22,
-      padding: 24,
+    listContent: {
+      paddingTop: 16,
+    },
+    listContentEmpty: {
+      flexGrow: 1,
+      justifyContent: "center",
+    },
+    header: {
+      gap: 12,
+      marginBottom: 16,
+    },
+    separator: {
+      height: 12,
+    },
+    emptyState: {
       alignItems: "center",
-      backgroundColor: colors.backgroundElement,
-      borderColor: colors.backgroundSelected,
+      paddingHorizontal: 24,
+      paddingVertical: 32,
+      borderRadius: 22,
+      borderWidth: 1,
+      backgroundColor: colors.emptyBg,
+      borderColor: colors.emptyBorder,
     },
-    iconWrap: {
-      width: 56,
-      height: 56,
-      borderRadius: 18,
+    emptyIconWrap: {
+      width: 64,
+      height: 64,
+      borderRadius: 20,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: colors.primaryMuted,
-      borderWidth: 1,
-      borderColor: `${colors.primary}30`,
+      backgroundColor: colors.emptyIconBg,
     },
-    greeting: {
+    emptyTitle: {
       marginTop: 16,
-      fontSize: 22,
+      fontSize: 18,
       fontWeight: "800",
-      color: colors.text,
+      color: colors.emptyTitle,
       textAlign: "center",
     },
-    message: {
+    emptyDescription: {
       marginTop: 8,
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-    hint: {
       fontSize: 14,
       lineHeight: 20,
-      color: colors.textSecondary,
+      color: colors.emptyDescription,
       textAlign: "center",
-      paddingHorizontal: 8,
+    },
+    fab: {
+      position: "absolute",
+      right: 24,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      elevation: 6,
+    },
+    fabGradient: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });

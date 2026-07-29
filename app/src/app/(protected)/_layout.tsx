@@ -17,6 +17,7 @@ export default function ProtectedLayout() {
       }}
     >
       <Stack.Screen name="home" options={{ headerShown: false }} />
+      <Stack.Screen name="products/new" options={{ headerShown: false }} />
       <Stack.Screen name="profile" options={{ headerShown: false }} />
     </Stack>
   );

@@ -21,3 +21,15 @@ export const supabaseAuth = createClient(
     env.SUPABASE_ANON_KEY,
     clientOptions
 )
+
+/** Respeita RLS — use com o access token do usuário autenticado. */
+export function createSupabaseClientForUser(accessToken: string) {
+    return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+        ...clientOptions,
+        global: {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        },
+    })
+}

@@ -28,11 +28,11 @@ function isRefreshTokenReuseOrRevoked(error: { message?: string; code?: string }
 }
 
 class UserService {
-    async register(data: RegisterDTO): Promise<ServiceResult<{ username: string }, UserErrorCode>> {
+    async register(data: RegisterDTO): Promise<ServiceResult<{ id: string }, UserErrorCode>> {
         try {
             const { username, email, password } = data
 
-            const { error } = await supabaseAuth.auth.signUp({
+            const { data: authData, error } = await supabaseAuth.auth.signUp({
                 email,
                 password,
                 options: {
@@ -62,9 +62,19 @@ class UserService {
                 }
             }
 
+            if (!authData.user?.id) {
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_CREATE_FAILED,
+                        message: "Não foi possível criar o usuário. Tente novamente.",
+                    },
+                }
+            }
+
             return {
                 status: true,
-                data: { username },
+                data: { id: authData.user.id },
             }
         } catch (error) {
             console.error("[UserService.register] error:", error)

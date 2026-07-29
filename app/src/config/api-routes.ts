@@ -4,3 +4,8 @@ export const AUTH_ROUTES = {
   register: "/register",
   logout: "/logout",
 } as const;
+
+export const PRODUCT_ROUTES = {
+  list: "/products",
+  create: "/products",
+} as const;

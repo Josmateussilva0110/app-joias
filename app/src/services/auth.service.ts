@@ -13,7 +13,7 @@ export function registerUser(
 ) {
   const { username, email, password } = data;
 
-  return requestData<{ username: string }>({
+  return requestData<{ id: string }>({
     endpoint: AUTH_ROUTES.register,
     method: "POST",
     data: { username, email, password },
