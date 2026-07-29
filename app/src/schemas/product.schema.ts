@@ -7,7 +7,9 @@ import {
 
 export const productFormSchema = z.object({
   jewelry_type: jewelryTypeEnum,
-  customer_name: createProductSchema.shape.customer_name,
+  customer_id: z
+    .string()
+    .uuid("Selecione um cliente."),
   value: z
     .string()
     .trim()
@@ -24,7 +26,7 @@ export type ProductFormData = z.infer<typeof productFormSchema>;
 export function toCreateProductDTO(data: ProductFormData): CreateProductDTO {
   return {
     jewelry_type: data.jewelry_type,
-    customer_name: data.customer_name,
+    customer_id: data.customer_id,
     value: Number(data.value.replace(",", ".")),
     payment_status: data.payment_status,
   };

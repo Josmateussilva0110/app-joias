@@ -10,8 +10,10 @@ import { createSupabaseClientForUser } from "../database/supabase/supabase"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { ProductErrorCode } from "../types/code/productCode"
 
-const PRODUCT_SELECT =
-  "id, created_by, jewelry_type, customer_name, value, payment_status, created_at, updated_at"
+const PRODUCT_BASE_SELECT =
+  "id, created_by, customer_id, jewelry_type, value, payment_status, created_at, updated_at"
+
+const PRODUCT_SELECT = `${PRODUCT_BASE_SELECT}, customers(name)`
 
 const MIN_FILTER_YEAR = 2026
 
@@ -80,7 +82,7 @@ class ProductService {
       .from("products")
       .insert({
         jewelry_type: data.jewelry_type,
-        customer_name: data.customer_name,
+        customer_id: data.customer_id,
         value: data.value,
         payment_status: data.payment_status ?? false,
       })
@@ -142,13 +144,17 @@ class ProductService {
 
     const availableYears = getAvailableYears(yearRows ?? [])
 
+    const selectQuery = filters.customer_name
+      ? `${PRODUCT_BASE_SELECT}, customers!inner(name)`
+      : PRODUCT_SELECT
+
     let query = supabase
       .from("products")
-      .select(PRODUCT_SELECT)
+      .select(selectQuery)
       .order("created_at", { ascending: false })
 
     if (filters.customer_name) {
-      query = query.ilike("customer_name", `%${filters.customer_name}%`)
+      query = query.ilike("customers.name", `%${filters.customer_name}%`)
     }
 
     if (filters.jewelry_type) {
@@ -181,7 +187,7 @@ class ProductService {
       }
     }
 
-    let items = (data ?? []).map(mapProductRow)
+    let items = (data ?? []).map((row) => mapProductRow(row))
 
     if (filters.month && !filters.year) {
       items = applyMonthOnlyFilter(items, filters.month)

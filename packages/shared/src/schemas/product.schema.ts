@@ -17,11 +17,7 @@ export type JewelryType = z.infer<typeof jewelryTypeEnum>;
 
 export const createProductSchema = z.object({
   jewelry_type: jewelryTypeEnum,
-  customer_name: z
-    .string()
-    .trim()
-    .min(1, "Nome do cliente é obrigatório.")
-    .max(120, "Nome do cliente deve ter no máximo 120 caracteres."),
+  customer_id: z.uuid("Selecione um cliente válido."),
   value: z
     .number({ error: "Valor é obrigatório." })
     .positive("Valor deve ser maior que zero.")
@@ -34,7 +30,7 @@ export const updateProductSchema = createProductSchema
   .refine(
     (data) =>
       data.jewelry_type !== undefined ||
-      data.customer_name !== undefined ||
+      data.customer_id !== undefined ||
       data.value !== undefined ||
       data.payment_status !== undefined,
     { message: "Informe ao menos um campo para atualizar." }
@@ -47,8 +43,9 @@ export const productIdParamSchema = z.object({
 export const productResponseSchema = z.object({
   id: z.uuid(),
   created_by: z.uuid(),
-  jewelry_type: jewelryTypeEnum,
+  customer_id: z.uuid(),
   customer_name: z.string(),
+  jewelry_type: jewelryTypeEnum,
   value: z.number(),
   payment_status: z.boolean(),
   created_at: z.string(),
@@ -90,21 +87,31 @@ export type ListProductsQuery = z.output<typeof listProductsQuerySchema>;
 export type ProductSummary = z.infer<typeof productSummarySchema>;
 export type ProductListResult = z.infer<typeof productListResultSchema>;
 
+type CustomerRelation = { name: string } | { name: string }[] | null | undefined;
+
+function getCustomerName(customers: CustomerRelation): string {
+  if (!customers) return "Cliente";
+  if (Array.isArray(customers)) return customers[0]?.name ?? "Cliente";
+  return customers.name ?? "Cliente";
+}
+
 export function mapProductRow(row: {
   id: string;
   created_by: string;
+  customer_id: string;
   jewelry_type: JewelryType;
-  customer_name: string;
   value: number | string;
   payment_status: boolean;
   created_at: string;
   updated_at: string;
+  customers?: CustomerRelation;
 }): ProductResponse {
   return {
     id: row.id,
     created_by: row.created_by,
+    customer_id: row.customer_id,
+    customer_name: getCustomerName(row.customers),
     jewelry_type: row.jewelry_type,
-    customer_name: row.customer_name,
     value: typeof row.value === "string" ? Number(row.value) : row.value,
     payment_status: row.payment_status,
     created_at: row.created_at,

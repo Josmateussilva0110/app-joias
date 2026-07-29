@@ -14,9 +14,12 @@ import { User, DollarSign, PlusCircle, Gem, CircleDollarSign } from "lucide-reac
 import { FormField } from "@/components/ui/form-field";
 import { SelectField } from "@/components/ui/select-field";
 import { ToggleRow } from "@/components/ui/toggle.row";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { useCreateProduct } from "@/hooks/use-products";
+import { buildCustomerOptions, useCustomers } from "@/hooks/use-customers";
 import {
   productFormSchema,
   toCreateProductDTO,
@@ -30,6 +33,15 @@ export function ProductForm() {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const createProduct = useCreateProduct();
+  const {
+    data: customers,
+    isLoading: isLoadingCustomers,
+    isError: isCustomersError,
+    error: customersError,
+    refetch: refetchCustomers,
+  } = useCustomers();
+
+  const customerOptions = buildCustomerOptions(customers ?? []);
 
   const {
     control,
@@ -41,7 +53,7 @@ export function ProductForm() {
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       jewelry_type: "colar",
-      customer_name: "",
+      customer_id: "",
       value: "",
       payment_status: false,
     },
@@ -69,6 +81,37 @@ export function ProductForm() {
     }
   };
 
+  if (isLoadingCustomers) {
+    return <LoadingState message="Carregando clientes..." />;
+  }
+
+  if (isCustomersError) {
+    return (
+      <ErrorState
+        error={customersError?.message ?? "Não foi possível carregar os clientes."}
+        onRetry={() => refetchCustomers()}
+      />
+    );
+  }
+
+  if (customerOptions.length === 0) {
+    return (
+      <View style={styles.emptyCustomers}>
+        <Text style={styles.emptyTitle}>Nenhum cliente cadastrado</Text>
+        <Text style={styles.emptyDescription}>
+          Cadastre um cliente antes de registrar uma venda.
+        </Text>
+        <TouchableOpacity
+          onPress={() => router.push("/(protected)/customers/new")}
+          activeOpacity={0.85}
+          style={styles.emptyLink}
+        >
+          <Text style={styles.emptyLinkText}>Cadastrar cliente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -92,18 +135,16 @@ export function ProductForm() {
 
       <Controller
         control={control}
-        name="customer_name"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <FormField
+        name="customer_id"
+        render={({ field: { value, onChange } }) => (
+          <SelectField
             label="Cliente*"
             icon={User}
-            error={errors.customer_name?.message}
             value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholder="Nome do cliente"
-            autoCapitalize="words"
-            returnKeyType="next"
+            options={customerOptions}
+            onChange={onChange}
+            placeholder="Selecione um cliente"
+            error={errors.customer_id?.message}
           />
         )}
       />
@@ -171,6 +212,37 @@ const createStyles = (colors: ThemeColors) =>
       padding: 24,
       gap: 20,
       paddingBottom: 40,
+    },
+    emptyCustomers: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+      gap: 8,
+    },
+    emptyTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: colors.text,
+      textAlign: "center",
+    },
+    emptyDescription: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.textSecondary,
+      textAlign: "center",
+    },
+    emptyLink: {
+      marginTop: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: colors.primaryMuted,
+    },
+    emptyLinkText: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: colors.primary,
     },
     section: {
       gap: 10,

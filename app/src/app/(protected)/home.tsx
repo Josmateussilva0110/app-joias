@@ -14,6 +14,7 @@ import { Plus, Gem } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppShell } from "@/components/appShell";
+import { HomeHeaderActions } from "@/components/layout/home-header-actions";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { ProductListItem } from "@/features/products/components/product-list-item";
@@ -57,7 +58,11 @@ export default function HomeScreen() {
 
   if (isInitialLoading) {
     return (
-      <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+      <AppShell
+        title="Vendas"
+        subtitle={APP_NAME}
+        rightElement={<HomeHeaderActions />}
+      >
         <LoadingState message="Carregando vendas..." />
       </AppShell>
     );
@@ -65,7 +70,11 @@ export default function HomeScreen() {
 
   if (isError) {
     return (
-      <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+      <AppShell
+        title="Vendas"
+        subtitle={APP_NAME}
+        rightElement={<HomeHeaderActions />}
+      >
         <ErrorState
           error={error?.message ?? "Não foi possível carregar as vendas."}
           onRetry={() => refetch()}
@@ -75,7 +84,7 @@ export default function HomeScreen() {
   }
 
   return (
-    <AppShell title="Vendas" subtitle={APP_NAME} showSettings>
+    <AppShell title="Vendas" subtitle={APP_NAME} rightElement={<HomeHeaderActions />}>
       <View style={styles.container}>
         <FlatList
           data={products}

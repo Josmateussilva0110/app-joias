@@ -9,3 +9,8 @@ export const PRODUCT_ROUTES = {
   list: "/products",
   create: "/products",
 } as const;
+
+export const CUSTOMER_ROUTES = {
+  list: "/customers",
+  create: "/customers",
+} as const;
