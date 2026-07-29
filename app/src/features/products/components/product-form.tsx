@@ -9,17 +9,18 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { User, DollarSign, PlusCircle, Gem, CircleDollarSign } from "lucide-react-native";
+import { DollarSign, PlusCircle, Gem, CircleDollarSign } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
 import { SelectField } from "@/components/ui/select-field";
+import { CustomerSelectField } from "@/features/customers/components/customer-select-field";
 import { ToggleRow } from "@/components/ui/toggle.row";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { useCreateProduct } from "@/hooks/use-products";
-import { buildCustomerOptions, useCustomers } from "@/hooks/use-customers";
+import { useCustomers } from "@/hooks/use-customers";
 import {
   productFormSchema,
   toCreateProductDTO,
@@ -41,7 +42,7 @@ export function ProductForm() {
     refetch: refetchCustomers,
   } = useCustomers();
 
-  const customerOptions = buildCustomerOptions(customers ?? []);
+  const hasCustomers = (customers?.length ?? 0) > 0;
 
   const {
     control,
@@ -94,7 +95,7 @@ export function ProductForm() {
     );
   }
 
-  if (customerOptions.length === 0) {
+  if (!hasCustomers) {
     return (
       <View style={styles.emptyCustomers}>
         <Text style={styles.emptyTitle}>Nenhum cliente cadastrado</Text>
@@ -137,11 +138,9 @@ export function ProductForm() {
         control={control}
         name="customer_id"
         render={({ field: { value, onChange } }) => (
-          <SelectField
-            label="Cliente*"
-            icon={User}
+          <CustomerSelectField
+            customers={customers ?? []}
             value={value}
-            options={customerOptions}
             onChange={onChange}
             placeholder="Selecione um cliente"
             error={errors.customer_id?.message}
