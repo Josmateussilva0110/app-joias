@@ -1,0 +1,142 @@
+import { Request, Response } from "express"
+import UserService from "../services/UserService"
+import { userErrorHttpStatusMap } from "../errors/userErrorHttpMapper"
+import { getHttpStatusFromError } from "../utils/getHttpStatusFromError"
+
+class UserController {
+  async register(request: Request, response: Response): Promise<Response> {
+    const result = await UserService.register(request.body)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(201).json({
+      success: true,
+      message: "Usuário cadastrado com sucesso",
+      data: result.data,
+    })
+  }
+
+  async login(request: Request, response: Response): Promise<Response> {
+    const { email, password } = request.body
+    const result = await UserService.login(email, password)
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+
+    return response.status(200).json({
+      success: true,
+      message: "Login Realizado com sucesso",
+      data: result.data,
+    })
+  }
+
+  async logout(request: Request, response: Response): Promise<Response> {
+
+    const result = await UserService.logout(request.accessToken!)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: "Logout realizado com sucesso",
+    })
+  }
+
+  async refresh(request: Request, response: Response): Promise<Response> {
+    const { refreshToken } = request.body
+
+    const result = await UserService.refresh(refreshToken)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        code: result.error.code,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: "Sessão renovada com sucesso.",
+      data: result.data,
+    })
+  }
+
+  async getProfile(request: Request, response: Response): Promise<Response> {
+    const userId = request.user.id
+
+    const result = await UserService.getProfile(userId)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      data: result.data,
+    })
+  }
+
+  async updateProfile(request: Request, response: Response): Promise<Response> {
+    const userId = request.user.id
+    const { username } = request.body
+
+    const result = await UserService.updateProfile(userId, { username })
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: "Perfil atualizado com sucesso.",
+      data: result.data,
+    })
+  }
+}
+
+export default new UserController()

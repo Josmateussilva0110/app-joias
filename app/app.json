@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "euComprei",
+    "slug": "app",
+    "version": "1.0.9",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "financeiroapp",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "usesCleartextTraffic": false,
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.mateus0110.financeiroapp"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#000000",
+          "android": {
+            "image": "./assets/images/splash-icon.png",
+            "imageWidth": 300
+          }
+        }
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": true,
+            "usesCleartextTraffic": false,
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false,
+            "enableBundleCompression": true,
+            "buildArchs": [
+              "arm64-v8a"
+            ],
+            "extraProguardRules": "-keep class com.swmansion.reanimated.** { *; }\n-keep class com.swmansion.worklets.** { *; }\n-keep class com.facebook.react.turbomodule.** { *; }"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "65b1197a-12fb-4de1-a2c7-97b091751827"
+      }
+    }
+  }
+}

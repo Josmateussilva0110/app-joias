@@ -1,0 +1,116 @@
+# ================================================================
+# Monorepo — loja-joias
+# Raiz: frontend (app), backend, packages/shared, supabase
+# ================================================================
+
+# ── Dependências ────────────────────────────────────────────────
+node_modules/
+
+# ── Variáveis de ambiente (segredos) ───────────────────────────
+.env
+.env.*
+!.env.example
+!**/.env.example
+!env-exemple
+!**/env-exemple
+
+# dotenvx / chaves locais
+.env.keys
+.env.local
+.env.*.local
+
+# ── Logs e debug ────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Sistema operacional ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── IDEs e editores ─────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# ── TypeScript ──────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ── Testes / cobertura ──────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Backend (Express) ───────────────────────────────────────────
+backend/dist/
+
+# ── Packages compartilhados ─────────────────────────────────────
+packages/*/dist/
+packages/*/node_modules/
+
+# ── Frontend (Expo / React Native) ─────────────────────────────
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# Gerado em npm start / build (write-api-url.js)
+app/src/config/api-url.generated.ts
+
+# Pastas nativas geradas pelo prebuild (quando regeneradas)
+app/ios/
+
+# ── Android ─────────────────────────────────────────────────────
+app/android/build/
+app/android/.gradle/
+app/android/local.properties
+app/android/.cxx/
+app/android/.build-config-hash
+app/android/app/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+.kotlin/
+
+# Certificados e provisioning (iOS/Android)
+*.pem
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# ── Build / artefatos de deploy ─────────────────────────────────
+build/
+*.apk
+*.aab
+
+# ── Supabase (local) ────────────────────────────────────────────
+supabase/.branches
+supabase/.temp
+
+# ── Docker / cache ───────────────────────────────────────────────
+.cache/
+tmp/
+temp/
+
+# ── Misc ────────────────────────────────────────────────────────
+app-example

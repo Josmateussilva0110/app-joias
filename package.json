@@ -1,0 +1,15 @@
+{
+  "name": "aplicativo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "backend",
+    "app"
+  ],
+  "engines": {
+    "node": "22.x"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
+  }
+}
