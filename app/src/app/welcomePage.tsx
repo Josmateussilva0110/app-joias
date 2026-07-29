@@ -1,4 +1,5 @@
-import { View, ScrollView, StyleSheet } from "react-native";
+import { View, ScrollView, StyleSheet, StatusBar } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/context/theme.context";
 import { Spacing } from "@/constants/theme";
@@ -10,28 +11,38 @@ export default function WelcomeScreen() {
   const { colors } = useTheme();
 
   return (
-    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
-      <ScrollView
-        style={[styles.root, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-      >
-        <View style={styles.content}>
-          <WelcomeHeader />
-          <WelcomeFeatures />
-          <WelcomeActions />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <View style={styles.root}>
+      <StatusBar
+        barStyle={colors.statusBarStyle}
+        backgroundColor={colors.authGradientStart}
+      />
+      <LinearGradient
+        colors={[colors.authGradientStart, colors.authGradientEnd, colors.background]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.content}>
+            <WelcomeHeader />
+            <WelcomeFeatures />
+            <WelcomeActions />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  root: {
     flex: 1,
   },
-  root: {
+  safe: {
     flex: 1,
   },
   container: {

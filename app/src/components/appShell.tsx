@@ -39,7 +39,7 @@ export function AppShell({
     showSettings ? (
       <View style={styles.headerActions}>
         <TouchableOpacity
-          onPress={() => router.push("/profile")}
+          onPress={() => router.push("/(protected)/profile")}
           activeOpacity={0.7}
           style={[styles.settingsButton, { backgroundColor: theme.backgroundElement }]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

@@ -1,4 +1,4 @@
-import { ShieldCheck, UserCircle, Sparkles } from "lucide-react-native";
+import { Gem, Users, CircleDollarSign } from "lucide-react-native";
 import type { LucideIcon } from "lucide-react-native";
 
 export type WelcomeFeature = {
@@ -9,18 +9,20 @@ export type WelcomeFeature = {
 
 export const WELCOME_FEATURES: WelcomeFeature[] = [
   {
-    icon: ShieldCheck,
-    title: "Conta segura",
-    desc: "Autenticação com tokens e sessão protegida.",
+    icon: Gem,
+    title: "Catálogo de joias",
+    desc: "Colares, pulseiras, brincos, anéis e muito mais.",
   },
   {
-    icon: UserCircle,
-    title: "Perfil personalizado",
-    desc: "Gerencie seus dados e preferências.",
+    icon: Users,
+    title: "Clientes e vendas",
+    desc: "Registre quem comprou, o que levou e quando.",
   },
   {
-    icon: Sparkles,
-    title: "Pronto para evoluir",
-    desc: "Base pronta para o seu próximo app.",
+    icon: CircleDollarSign,
+    title: "Controle financeiro",
+    desc: "Acompanhe pagamentos, totais e valores em aberto.",
   },
 ];
+
+export const APP_NAME = "Loja Joias";

@@ -97,7 +97,7 @@ const createStyles = (colors: ThemeColors) =>
       paddingLeft: 40,
       paddingRight: 12,
       fontSize: 15,
-      backgroundColor: colors.backgroundElement,
+      backgroundColor: colors.background,
       borderColor: colors.backgroundSelected,
       color: colors.text,
     },

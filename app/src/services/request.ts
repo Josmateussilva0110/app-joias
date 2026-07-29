@@ -7,6 +7,10 @@ export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
   data?: T;
+  errors?: Array<{
+    field: string;
+    message: string;
+  }>;
   error?: {
     reason: ApiErrorReason;
     status?: number;
@@ -65,10 +69,14 @@ export async function requestData<TResponse, TRequest = unknown>({
 
     // O servidor respondeu (4xx / 5xx)
     if (err.response) {
+      const body = err.response.data;
+      const validationMessage = body?.errors?.[0]?.message;
+
       return {
         success: false,
         message:
-          err.response.data?.message ??
+          validationMessage ??
+          body?.message ??
           "Erro ao processar solicitação.",
         error: {
           reason: "server_error",

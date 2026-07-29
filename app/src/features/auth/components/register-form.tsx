@@ -2,6 +2,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { UserPlus, Mail, Lock, User } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
@@ -40,7 +41,14 @@ export function RegisterForm() {
     }
 
     show("success", result.message);
-    router.replace("/login");
+    router.replace("/(protected)/home");
+  };
+
+  const onInvalid = () => {
+    const firstError = Object.values(errors)[0]?.message;
+    if (firstError) {
+      show("error", firstError);
+    }
   };
 
   return (
@@ -124,15 +132,22 @@ export function RegisterForm() {
 
       {/* BOTÃO */}
       <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
-        onPress={handleSubmit(onSubmit)}
+        onPress={handleSubmit(onSubmit, onInvalid)}
         disabled={isSubmitting}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
+        style={isSubmitting && styles.buttonDisabled}
       >
-        <UserPlus size={18} color="#fff" />
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Criando conta..." : "Criar conta"}
-        </Text>
+        <LinearGradient
+          colors={[colors.primary, "#9A7840"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.button}
+        >
+          <UserPlus size={18} color={colors.onPrimary} />
+          <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
+            {isSubmitting ? "Criando conta..." : "Criar conta"}
+          </Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -145,19 +160,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     button: {
       height: 52,
-      borderRadius: 12,
+      borderRadius: 14,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
       marginTop: 4,
-      backgroundColor: colors.primary,
     },
     buttonDisabled: {
       opacity: 0.7,
     },
     buttonText: {
-      color: "#fff",
       fontSize: 15,
       fontWeight: "700",
     },

@@ -2,6 +2,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { LogIn, Mail, Lock } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
@@ -35,7 +36,7 @@ export function LoginForm() {
     }
 
     show("success", result.message);
-    router.replace("/(protected)/profile");
+    router.replace("/(protected)/home");
   };
 
   return (
@@ -81,15 +82,22 @@ export function LoginForm() {
 
       {/* BOTÃO */}
       <TouchableOpacity
-        style={[styles.button, isSubmitting && styles.buttonDisabled]}
         onPress={handleSubmit(onSubmit)}
         disabled={isSubmitting}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
+        style={isSubmitting && styles.buttonDisabled}
       >
-        <LogIn size={18} color="#fff" />
-        <Text style={styles.buttonText}>
-          {isSubmitting ? "Entrando..." : "Entrar"}
-        </Text>
+        <LinearGradient
+          colors={[colors.primary, "#9A7840"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.button}
+        >
+          <LogIn size={18} color={colors.onPrimary} />
+          <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
+            {isSubmitting ? "Entrando..." : "Entrar"}
+          </Text>
+        </LinearGradient>
       </TouchableOpacity>
     </View>
   );
@@ -102,19 +110,17 @@ const createStyles = (colors: ThemeColors) =>
     },
     button: {
       height: 52,
-      borderRadius: 12,
+      borderRadius: 14,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       gap: 8,
       marginTop: 4,
-      backgroundColor: colors.primary,
     },
     buttonDisabled: {
       opacity: 0.7,
     },
     buttonText: {
-      color: "#fff",
       fontSize: 15,
       fontWeight: "700",
     },

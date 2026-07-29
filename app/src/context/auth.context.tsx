@@ -131,12 +131,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  async function establishSession(data: AuthData) {
+    tokenManager.setTokens(data.accessToken, data.refreshToken);
+    await saveAuth(data);
+    setUser(data.user);
+    setSigned(true);
+  }
+
   async function register(dto: RegisterDTO) {
     const result = await registerUser(dto);
 
+    if (!result.success) {
+      return {
+        success: false,
+        message: result.message,
+      };
+    }
+
+    const loginResult = await loginUser({
+      email: dto.email.trim(),
+      password: dto.password,
+    });
+
+    if (!loginResult.success || !loginResult.data) {
+      return {
+        success: false,
+        message:
+          loginResult.message ||
+          "Conta criada, mas não foi possível entrar automaticamente.",
+      };
+    }
+
+    await establishSession(loginResult.data);
+
     return {
-      success: result.success,
-      message: result.message,
+      success: true,
+      message: "Conta criada com sucesso!",
     };
   }
 
@@ -150,15 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
-    tokenManager.setTokens(
-      result.data.accessToken,
-      result.data.refreshToken
-    );
-
-    await saveAuth(result.data);
-
-    setUser(result.data.user);
-    setSigned(true);
+    await establishSession(result.data);
 
     return {
       success: true,

@@ -1,4 +1,5 @@
 const { loadAppEnv } = require("./scripts/load-app-env");
+const { resolveApiUrl } = require("./scripts/resolve-api-url");
 
 loadAppEnv(__dirname);
 
@@ -13,9 +14,14 @@ const buildMeta = fs.existsSync(versionFile)
   ? JSON.parse(fs.readFileSync(versionFile, "utf8"))
   : { versionCode: 1 };
 
-const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+const rawApiUrl = process.env.EXPO_PUBLIC_API_URL ?? "";
+const resolvedApiUrl =
+  rawApiUrl.trim() && !["auto", "emulator"].includes(rawApiUrl.trim())
+    ? rawApiUrl.trim().replace(/\/+$/, "")
+    : resolveApiUrl(rawApiUrl.trim() || "auto");
+
 /** Cleartext só quando a API for HTTP local (dev); produção com HTTPS fica bloqueado. */
-const allowCleartextTraffic = Boolean(apiUrl && apiUrl.startsWith("http://"));
+const allowCleartextTraffic = resolvedApiUrl.startsWith("http://");
 
 const plugins = (appJson.expo.plugins ?? []).map((plugin) => {
   if (Array.isArray(plugin) && plugin[0] === "expo-build-properties") {
@@ -47,6 +53,6 @@ module.exports = {
     ...appJson.expo.extra,
     appVersion: packageJson.version,
     versionCode: buildMeta.versionCode,
-    apiUrl,
+    apiUrl: resolvedApiUrl,
   },
 };

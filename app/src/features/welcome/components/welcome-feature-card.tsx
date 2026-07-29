@@ -15,7 +15,7 @@ export function WelcomeFeatureCard({ icon: Icon, title, desc }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.iconWrapper}>
-        <Icon size={20} color={colors.primary} />
+        <Icon size={20} color={colors.primary} strokeWidth={2} />
       </View>
 
       <View style={styles.content}>
@@ -31,32 +31,35 @@ const createStyles = (colors: ThemeColors) =>
     card: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
+      gap: 14,
       borderWidth: 1,
       padding: 16,
-      borderRadius: 20,
+      borderRadius: 18,
       backgroundColor: colors.backgroundElement,
       borderColor: colors.backgroundSelected,
     },
     iconWrapper: {
-      width: 42,
-      height: 42,
+      width: 44,
+      height: 44,
       borderRadius: 14,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "rgba(34,197,94,0.08)",
+      backgroundColor: colors.primaryMuted,
+      borderWidth: 1,
+      borderColor: `${colors.primary}30`,
     },
     content: {
       flex: 1,
     },
     title: {
-      fontWeight: "600",
+      fontWeight: "700",
       fontSize: 15,
       color: colors.text,
     },
     description: {
       fontSize: 13,
-      marginTop: 2,
+      marginTop: 3,
+      lineHeight: 18,
       color: colors.textSecondary,
     },
   });

@@ -20,6 +20,7 @@ const passwordComplexity = z
 export const loginSchema = z.object({
   email: z
     .string()
+    .trim()
     .min(1, "O e-mail é obrigatório")
     .email("Digite um e-mail válido"),
 
@@ -35,6 +36,7 @@ export const registerSchema = z
 
     email: z
       .string()
+      .trim()
       .min(1, "O e-mail é obrigatório")
       .email("Digite um e-mail válido"),
 

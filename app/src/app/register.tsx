@@ -1,4 +1,5 @@
-import { View, StyleSheet, useWindowDimensions } from "react-native";
+import { View, StyleSheet, useWindowDimensions, StatusBar } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/context/theme.context";
@@ -14,44 +15,53 @@ export default function RegisterScreen() {
   const isTablet = width >= 768;
 
   return (
-    <SafeAreaView
-      style={[styles.safe, { backgroundColor: colors.background }]}
-      edges={["top", "bottom"]}
-    >
-      <KeyboardAwareScrollView
-        style={{ backgroundColor: colors.background }}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingHorizontal: width < 380 ? 16 : 24 },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        enableOnAndroid
-        extraScrollHeight={120}
-        extraHeight={120}
-        enableAutomaticScroll
-        showsVerticalScrollIndicator={false}
-      >
-        <AuthHeader subtitle="Crie sua conta para começar" />
-
-        <View
-          style={[
-            styles.card,
-            {
-              maxWidth: isTablet ? 500 : 420,
-              backgroundColor: colors.backgroundElement,
-              borderColor: colors.backgroundSelected,
-            },
+    <View style={styles.root}>
+      <StatusBar
+        barStyle={colors.statusBarStyle}
+        backgroundColor={colors.authGradientStart}
+      />
+      <LinearGradient
+        colors={[colors.authGradientStart, colors.authGradientEnd, colors.background]}
+        locations={[0, 0.5, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={[
+            styles.scroll,
+            { paddingHorizontal: width < 380 ? 16 : 24 },
           ]}
+          keyboardShouldPersistTaps="handled"
+          enableOnAndroid
+          extraScrollHeight={120}
+          extraHeight={120}
+          enableAutomaticScroll
+          showsVerticalScrollIndicator={false}
         >
-          <RegisterForm />
-          <RegisterFooter />
-        </View>
-      </KeyboardAwareScrollView>
-    </SafeAreaView>
+          <AuthHeader subtitle="Crie sua conta e comece a registrar vendas" />
+
+          <View
+            style={[
+              styles.card,
+              {
+                maxWidth: isTablet ? 500 : 420,
+                backgroundColor: colors.backgroundElement,
+                borderColor: colors.backgroundSelected,
+                shadowColor: colors.primary,
+              },
+            ]}
+          >
+            <RegisterForm />
+            <RegisterFooter />
+          </View>
+        </KeyboardAwareScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   safe: { flex: 1 },
   scroll: {
     flexGrow: 1,
@@ -61,9 +71,13 @@ const styles = StyleSheet.create({
   card: {
     width: "100%",
     alignSelf: "center",
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     padding: 24,
     gap: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
 });

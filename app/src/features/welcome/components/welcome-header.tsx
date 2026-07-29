@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet } from "react-native";
-import { Wallet } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Gem } from "lucide-react-native";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
+import { APP_NAME } from "../constants/welcome-constants";
 
 export function WelcomeHeader() {
   const { colors } = useTheme();
@@ -8,18 +10,24 @@ export function WelcomeHeader() {
 
   return (
     <View style={styles.header}>
-      <View style={styles.logoContainer}>
-        <Wallet size={40} color="#fff" />
-      </View>
+      <LinearGradient
+        colors={[colors.primary, "#9A7840"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.logoContainer}
+      >
+        <Gem size={38} color={colors.onPrimary} strokeWidth={1.75} />
+      </LinearGradient>
+
+      <Text style={styles.eyebrow}>BEM-VINDO À</Text>
 
       <Text style={styles.title}>
-        Bem-vindo ao{" "}
-        <Text style={styles.titleHighlight}>Finanças</Text>
+        <Text style={styles.titleHighlight}>{APP_NAME}</Text>
       </Text>
 
       <Text style={styles.subtitle}>
-        Controle seus gastos do mês de forma simples: organize por prioridade,
-        categoria e forma de pagamento.
+        Seu controle de vendas de joias em um só lugar — do balcão ao caixa,
+        com elegância e praticidade.
       </Text>
     </View>
   );
@@ -31,32 +39,41 @@ const createStyles = (colors: ThemeColors) =>
       alignItems: "center",
     },
     logoContainer: {
-      width: 80,
-      height: 80,
-      borderRadius: 24,
-      backgroundColor: colors.primary,
+      width: 84,
+      height: 84,
+      borderRadius: 28,
       justifyContent: "center",
       alignItems: "center",
       shadowColor: colors.primary,
-      shadowOpacity: 0.4,
-      shadowRadius: 10,
-      elevation: 10,
+      shadowOpacity: 0.45,
+      shadowRadius: 14,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 12,
+    },
+    eyebrow: {
+      marginTop: 28,
+      fontSize: 11,
+      fontWeight: "700",
+      letterSpacing: 2.4,
+      color: colors.accent,
     },
     title: {
-      marginTop: 24,
-      fontSize: 32,
-      fontWeight: "bold",
+      marginTop: 8,
+      fontSize: 34,
+      fontWeight: "800",
       textAlign: "center",
+      letterSpacing: -0.5,
       color: colors.text,
     },
     titleHighlight: {
       color: colors.primary,
     },
     subtitle: {
-      marginTop: 12,
+      marginTop: 14,
       fontSize: 15,
       textAlign: "center",
-      lineHeight: 22,
+      lineHeight: 23,
       color: colors.textSecondary,
+      paddingHorizontal: 8,
     },
   });

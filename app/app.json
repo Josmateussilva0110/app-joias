@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "euComprei",
+    "name": "Loja Joias",
     "slug": "app",
     "version": "1.0.9",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
       "usesCleartextTraffic": false,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
-        "backgroundColor": "#000000",
+        "backgroundColor": "#1A1410",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -27,7 +27,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#000000",
+          "backgroundColor": "#1A1410",
           "android": {
             "image": "./assets/images/splash-icon.png",
             "imageWidth": 300

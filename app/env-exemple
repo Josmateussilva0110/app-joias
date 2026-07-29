@@ -1,1 +1,15 @@
-EXPO_PUBLIC_API_URL=
+# URL da API para desenvolvimento local (sem barra no final)
+#
+# Expo Go no celular NÃO alcança localhost — use uma das opções:
+#
+# auto     → detecta o IP da sua máquina na rede (recomendado para celular físico)
+# emulator → Android emulador (10.0.2.2)
+# ou defina manualmente, ex.: http://192.168.0.10:3001/api
+#
+EXPO_PUBLIC_API_URL=auto
+
+# Emulador Android (descomente e comente a linha acima):
+# EXPO_PUBLIC_API_URL=emulator
+
+# Postman / testes no PC (localhost só funciona no navegador/simulador iOS):
+# EXPO_PUBLIC_API_URL=http://localhost:3001/api
