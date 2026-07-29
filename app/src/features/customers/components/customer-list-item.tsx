@@ -1,5 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { Trash2, UserRound } from "lucide-react-native";
+import { ChevronRight, UserRound } from "lucide-react-native";
 import { CustomerResponse } from "@app/shared";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
@@ -9,20 +9,19 @@ import {
 
 type CustomerListItemProps = {
   customer: CustomerResponse;
-  onDelete: (customer: CustomerResponse) => void;
-  isDeleting?: boolean;
+  onPress: (customer: CustomerResponse) => void;
 };
 
-export function CustomerListItem({
-  customer,
-  onDelete,
-  isDeleting = false,
-}: CustomerListItemProps) {
+export function CustomerListItem({ customer, onPress }: CustomerListItemProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      onPress={() => onPress(customer)}
+      activeOpacity={0.85}
+      style={styles.card}
+    >
       <View style={styles.iconWrap}>
         <UserRound size={18} color={colors.primary} strokeWidth={1.75} />
       </View>
@@ -37,16 +36,8 @@ export function CustomerListItem({
         </Text>
       </View>
 
-      <TouchableOpacity
-        onPress={() => onDelete(customer)}
-        disabled={isDeleting}
-        activeOpacity={0.75}
-        style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-      >
-        <Trash2 size={18} color={colors.error} />
-      </TouchableOpacity>
-    </View>
+      <ChevronRight size={18} color={colors.textSecondary} />
+    </TouchableOpacity>
   );
 }
 
@@ -84,16 +75,5 @@ const createStyles = (colors: ThemeColors) =>
     meta: {
       fontSize: 13,
       color: colors.cardPrice,
-    },
-    deleteButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 10,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: `${colors.error}12`,
-    },
-    deleteButtonDisabled: {
-      opacity: 0.5,
     },
   });

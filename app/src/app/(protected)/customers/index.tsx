@@ -1,11 +1,10 @@
-import { useCallback, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   View,
   StyleSheet,
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  Alert,
   useWindowDimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -19,9 +18,11 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { CustomerListItem } from "@/features/customers/components/customer-list-item";
 import { CustomersEmptyState } from "@/features/customers/components/customers-empty-state";
-import { useCustomers, useDeleteCustomer } from "@/hooks/use-customers";
+import { CustomersSearch } from "@/features/customers/components/customers-search";
+import { CustomersSummary } from "@/features/customers/components/customers-summary";
+import { filterCustomersByName } from "@/features/customers/utils/filter-customers";
+import { useCustomers } from "@/hooks/use-customers";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
-import { useToast } from "@/context/toast.context";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 
 export default function CustomersScreen() {
@@ -29,49 +30,27 @@ export default function CustomersScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const { show } = useToast();
   const styles = createStyles(colors);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [searchName, setSearchName] = useState("");
 
   const { data: customers, isLoading, isError, error, refetch, isRefetching } =
     useCustomers();
-  const deleteCustomer = useDeleteCustomer();
 
   const horizontalPadding = width < 380 ? 16 : 24;
-  const list = customers ?? [];
-
-  const handleDelete = useCallback(
-    (customer: CustomerResponse) => {
-      Alert.alert(
-        "Excluir cliente",
-        `Deseja remover ${customer.name}? Vendas vinculadas impedem a exclusão.`,
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Excluir",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                setDeletingId(customer.id);
-                await deleteCustomer.mutateAsync(customer.id);
-                show("success", "Cliente excluído com sucesso.");
-              } catch (deleteError) {
-                show(
-                  "error",
-                  deleteError instanceof Error
-                    ? deleteError.message
-                    : "Não foi possível excluir o cliente."
-                );
-              } finally {
-                setDeletingId(null);
-              }
-            },
-          },
-        ]
-      );
-    },
-    [deleteCustomer, show]
+  const allCustomers = customers ?? [];
+  const list = useMemo(
+    () => filterCustomersByName(allCustomers, searchName),
+    [allCustomers, searchName]
   );
+  const hasCustomers = allCustomers.length > 0;
+  const isSearching = searchName.trim().length > 0;
+
+  const handlePressCustomer = (customer: CustomerResponse) => {
+    router.push({
+      pathname: "/(protected)/customers/[id]",
+      params: { id: customer.id },
+    });
+  };
 
   const headerActions = (
     <View style={styles.headerActions}>
@@ -107,16 +86,20 @@ export default function CustomersScreen() {
   return (
     <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
       <View style={styles.container}>
+        <View style={[styles.fixedHeader, { paddingHorizontal: horizontalPadding }]}>
+          <CustomersSummary count={allCustomers.length} />
+          {hasCustomers ? (
+            <CustomersSearch value={searchName} onChange={setSearchName} />
+          ) : null}
+        </View>
+
         <FlatList
           data={list}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <CustomerListItem
-              customer={item}
-              onDelete={handleDelete}
-              isDeleting={deletingId === item.id}
-            />
+            <CustomerListItem customer={item} onPress={handlePressCustomer} />
           )}
+          style={styles.list}
           contentContainerStyle={[
             styles.listContent,
             {
@@ -134,7 +117,9 @@ export default function CustomersScreen() {
               colors={[colors.primary]}
             />
           }
-          ListEmptyComponent={<CustomersEmptyState />}
+          ListEmptyComponent={
+            <CustomersEmptyState variant={isSearching ? "no-results" : "empty"} />
+          }
         />
 
         <TouchableOpacity
@@ -161,6 +146,14 @@ const createStyles = (colors: ThemeColors) =>
     container: {
       flex: 1,
     },
+    fixedHeader: {
+      paddingTop: 16,
+      paddingBottom: 12,
+      gap: 12,
+    },
+    list: {
+      flex: 1,
+    },
     headerActions: {
       flexDirection: "row",
       alignItems: "center",
@@ -174,10 +167,9 @@ const createStyles = (colors: ThemeColors) =>
       justifyContent: "center",
     },
     listContent: {
-      paddingTop: 16,
+      flexGrow: 1,
     },
     listContentEmpty: {
-      flexGrow: 1,
       justifyContent: "center",
     },
     separator: {

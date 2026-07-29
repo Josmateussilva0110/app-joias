@@ -1,14 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreateCustomerDTO, CustomerResponse } from "@app/shared";
+import {
+  CreateCustomerDTO,
+  CustomerResponse,
+  UpdateCustomerDTO,
+} from "@app/shared";
 import {
   createCustomer,
   deleteCustomer,
+  getCustomer,
   listCustomers,
+  updateCustomer,
 } from "@/services/customer.service";
 import { PRODUCTS_KEY } from "@/hooks/use-products";
 import { useAuth } from "./useAuth";
 
 export const CUSTOMERS_KEY = ["customers"] as const;
+
+export function customerDetailKey(customerId: string) {
+  return [...CUSTOMERS_KEY, customerId] as const;
+}
 
 interface QueryError extends Error {
   status?: number;
@@ -37,6 +47,28 @@ export function useCustomers() {
   });
 }
 
+export function useCustomer(customerId: string) {
+  const { signed, loading } = useAuth();
+
+  return useQuery<CustomerResponse, QueryError>({
+    queryKey: customerDetailKey(customerId),
+    enabled: signed && !loading && Boolean(customerId),
+    queryFn: async () => {
+      const res = await getCustomer(customerId);
+
+      if (!res.success) {
+        const error = new Error(res.message) as QueryError;
+        error.status = res.error?.status;
+        error.reason = res.error?.reason;
+        throw error;
+      }
+
+      return res.data as CustomerResponse;
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
 export function useCreateCustomer() {
   const queryClient = useQueryClient();
 
@@ -59,6 +91,30 @@ export function useCreateCustomer() {
   });
 }
 
+export function useUpdateCustomer(customerId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<CustomerResponse, QueryError, UpdateCustomerDTO>({
+    mutationFn: async (data) => {
+      const res = await updateCustomer(customerId, data);
+
+      if (!res.success) {
+        const error = new Error(res.message) as QueryError;
+        error.status = res.error?.status;
+        error.reason = res.error?.reason;
+        throw error;
+      }
+
+      return res.data as CustomerResponse;
+    },
+    onSuccess(data) {
+      queryClient.setQueryData(customerDetailKey(customerId), data);
+      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
+    },
+  });
+}
+
 export function useDeleteCustomer() {
   const queryClient = useQueryClient();
 
@@ -73,7 +129,8 @@ export function useDeleteCustomer() {
         throw error;
       }
     },
-    onSuccess() {
+    onSuccess(_data, customerId) {
+      queryClient.removeQueries({ queryKey: customerDetailKey(customerId) });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
     },

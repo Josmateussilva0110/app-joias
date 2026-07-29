@@ -4,16 +4,12 @@ export function formatCustomerBirthDate(isoDate: string) {
   return `${day}/${month}/${year}`;
 }
 
-export function formatCustomerPhone(phone: string) {
-  const digits = phone.replace(/\D/g, "");
-
-  if (digits.length === 11) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-  }
-
-  if (digits.length === 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  }
-
-  return phone;
+export function formatCustomerCreatedAt(isoDate: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(isoDate));
 }
+
+export { formatPhoneDisplay as formatCustomerPhone } from "@/features/customers/utils/phone-mask";

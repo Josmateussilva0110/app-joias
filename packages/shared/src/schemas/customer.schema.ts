@@ -1,4 +1,17 @@
 import { z } from "zod";
+import {
+  CUSTOMER_PHONE_INVALID_MESSAGE,
+  isValidBrazilianPhone,
+  stripPhoneDigits,
+} from "../utils/phone";
+
+export const customerPhoneSchema = z
+  .string()
+  .trim()
+  .transform(stripPhoneDigits)
+  .refine(isValidBrazilianPhone, {
+    message: CUSTOMER_PHONE_INVALID_MESSAGE,
+  });
 
 export const createCustomerSchema = z.object({
   name: z
@@ -6,11 +19,7 @@ export const createCustomerSchema = z.object({
     .trim()
     .min(1, "Nome é obrigatório.")
     .max(120, "Nome deve ter no máximo 120 caracteres."),
-  phone: z
-    .string()
-    .trim()
-    .min(8, "Telefone deve ter no mínimo 8 caracteres.")
-    .max(20, "Telefone deve ter no máximo 20 caracteres."),
+  phone: customerPhoneSchema,
   birth_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Data de nascimento inválida. Use AAAA-MM-DD."),

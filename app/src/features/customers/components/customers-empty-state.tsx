@@ -2,18 +2,27 @@ import { StyleSheet, Text, View } from "react-native";
 import { UserRound } from "lucide-react-native";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 
-export function CustomersEmptyState() {
+type CustomersEmptyStateProps = {
+  variant?: "empty" | "no-results";
+};
+
+export function CustomersEmptyState({ variant = "empty" }: CustomersEmptyStateProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
+  const isNoResults = variant === "no-results";
 
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
         <UserRound size={28} color={colors.emptyIcon} strokeWidth={1.75} />
       </View>
-      <Text style={styles.title}>Nenhum cliente cadastrado</Text>
+      <Text style={styles.title}>
+        {isNoResults ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+      </Text>
       <Text style={styles.description}>
-        Toque no botão + para cadastrar seu primeiro cliente.
+        {isNoResults
+          ? "Tente buscar por outro nome."
+          : "Toque no botão + para cadastrar seu primeiro cliente."}
       </Text>
     </View>
   );

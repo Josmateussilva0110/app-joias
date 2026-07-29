@@ -9,25 +9,39 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { User, Phone, UserPlus } from "lucide-react-native";
+import { User, Phone, UserPlus, Save } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
 import { DateField } from "@/components/ui/date-field";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
-import { useCreateCustomer } from "@/hooks/use-customers";
+import { useCreateCustomer, useUpdateCustomer } from "@/hooks/use-customers";
 import {
   customerFormSchema,
   toCreateCustomerDTO,
+  toUpdateCustomerDTO,
   type CustomerFormData,
 } from "@/schemas/customer.schema";
+import { formatPhoneInput } from "@/features/customers/utils/phone-mask";
 
-export function CustomerForm() {
+type CustomerFormProps = {
+  mode?: "create" | "edit";
+  customerId?: string;
+  defaultValues?: CustomerFormData;
+};
+
+export function CustomerForm({
+  mode = "create",
+  customerId,
+  defaultValues,
+}: CustomerFormProps) {
   const router = useRouter();
   const { show } = useToast();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const createCustomer = useCreateCustomer();
+  const updateCustomer = useUpdateCustomer(customerId ?? "");
+  const isEditMode = mode === "edit";
 
   const {
     control,
@@ -35,22 +49,40 @@ export function CustomerForm() {
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormData>({
     resolver: zodResolver(customerFormSchema),
-    defaultValues: {
+    defaultValues: defaultValues ?? {
       name: "",
       phone: "",
       birth_date: "",
     },
   });
 
+  const isPending = isEditMode
+    ? updateCustomer.isPending
+    : createCustomer.isPending;
+
   const onSubmit = async (data: CustomerFormData) => {
     try {
-      await createCustomer.mutateAsync(toCreateCustomerDTO(data));
-      show("success", "Cliente cadastrado com sucesso!");
+      if (isEditMode) {
+        if (!customerId) {
+          throw new Error("Cliente inválido.");
+        }
+
+        await updateCustomer.mutateAsync(toUpdateCustomerDTO(data));
+        show("success", "Cliente atualizado com sucesso!");
+      } else {
+        await createCustomer.mutateAsync(toCreateCustomerDTO(data));
+        show("success", "Cliente cadastrado com sucesso!");
+      }
+
       router.back();
     } catch (error) {
       show(
         "error",
-        error instanceof Error ? error.message : "Não foi possível cadastrar o cliente."
+        error instanceof Error
+          ? error.message
+          : isEditMode
+            ? "Não foi possível atualizar o cliente."
+            : "Não foi possível cadastrar o cliente."
       );
     }
   };
@@ -95,11 +127,12 @@ export function CustomerForm() {
             icon={Phone}
             error={errors.phone?.message}
             value={value}
-            onChangeText={onChange}
+            onChangeText={(text) => onChange(formatPhoneInput(text))}
             onBlur={onBlur}
-            placeholder="11999998888"
+            placeholder="(11) 99999-9999"
             keyboardType="phone-pad"
             returnKeyType="next"
+            maxLength={16}
           />
         )}
       />
@@ -120,9 +153,9 @@ export function CustomerForm() {
 
       <TouchableOpacity
         onPress={handleSubmit(onSubmit, onInvalid)}
-        disabled={isSubmitting || createCustomer.isPending}
+        disabled={isSubmitting || isPending}
         activeOpacity={0.85}
-        style={(isSubmitting || createCustomer.isPending) && styles.buttonDisabled}
+        style={(isSubmitting || isPending) && styles.buttonDisabled}
       >
         <LinearGradient
           colors={[colors.primary, "#9A7840"]}
@@ -130,11 +163,17 @@ export function CustomerForm() {
           end={{ x: 1, y: 0 }}
           style={styles.button}
         >
-          <UserPlus size={18} color={colors.onPrimary} />
+          {isEditMode ? (
+            <Save size={18} color={colors.onPrimary} />
+          ) : (
+            <UserPlus size={18} color={colors.onPrimary} />
+          )}
           <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-            {isSubmitting || createCustomer.isPending
+            {isSubmitting || isPending
               ? "Salvando..."
-              : "Cadastrar cliente"}
+              : isEditMode
+                ? "Salvar alterações"
+                : "Cadastrar cliente"}
           </Text>
         </LinearGradient>
       </TouchableOpacity>
