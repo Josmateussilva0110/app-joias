@@ -4,7 +4,7 @@ import "react-native-reanimated";
 import { Stack } from "expo-router";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { queryClient } from "@/lib/query-client";
-import { asyncStoragePersister } from "@/lib/query-persister";
+import { asyncStoragePersister, QUERY_CACHE_BUSTER } from "@/lib/query-persister";
 import { ToastProvider } from "@/context/toast.context";
 import { AuthProvider } from "@/context/auth.context";
 import { ThemeProvider, useTheme } from "@/context/theme.context";
@@ -35,6 +35,16 @@ export default function RootLayout() {
       persistOptions={{
         persister: asyncStoragePersister,
         maxAge: PERSIST_MAX_AGE,
+        buster: QUERY_CACHE_BUSTER,
+        dehydrateOptions: {
+          shouldDehydrateQuery: (query) => {
+            if (query.queryKey[0] === "products") {
+              return false;
+            }
+
+            return query.state.status === "success";
+          },
+        },
       }}
     >
       <AuthProvider>

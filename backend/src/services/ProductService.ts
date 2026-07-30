@@ -3,6 +3,7 @@ import {
   ListProductsQuery,
   ProductListResult,
   ProductResponse,
+  PRODUCTS_PAGE_SIZE,
   UpdateProductDTO,
   mapProductRow,
 } from "@app/shared"
@@ -17,22 +18,16 @@ const PRODUCT_SELECT = `${PRODUCT_BASE_SELECT}, customers(name)`
 
 const MIN_FILTER_YEAR = 2026
 
-function getAvailableYears(createdAtValues: Array<{ created_at: string }>) {
-  const years = new Set<number>()
+type FilterableQuery = {
+  eq: (column: string, value: unknown) => FilterableQuery
+  gte: (column: string, value: string) => FilterableQuery
+  lt: (column: string, value: string) => FilterableQuery
+  or: (filters: string) => FilterableQuery
+}
+
+function getAvailableYears(years: number[]) {
   const currentYear = new Date().getFullYear()
-
-  for (const row of createdAtValues) {
-    const year = new Date(row.created_at).getFullYear()
-    if (year >= MIN_FILTER_YEAR) {
-      years.add(year)
-    }
-  }
-
-  if (currentYear >= MIN_FILTER_YEAR) {
-    years.add(currentYear)
-  }
-
-  const sortedYears = Array.from(years).sort((a, b) => b - a)
+  const sortedYears = years.filter((year) => year >= MIN_FILTER_YEAR).sort((a, b) => b - a)
 
   if (sortedYears.length === 0 && currentYear >= MIN_FILTER_YEAR) {
     return [currentYear]
@@ -55,20 +50,106 @@ function getDateRange(filters: ListProductsQuery) {
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
-function summarizeProducts(products: ProductResponse[]) {
-  return {
-    count: products.length,
-    total: products.reduce((sum, product) => sum + product.value, 0),
+function applyMonthOnlyFilter(query: FilterableQuery, month: number) {
+  const currentYear = new Date().getFullYear()
+  const ranges: string[] = []
+
+  for (let year = MIN_FILTER_YEAR; year <= currentYear; year += 1) {
+    const start = new Date(year, month - 1, 1).toISOString()
+    const end = new Date(year, month, 1).toISOString()
+    ranges.push(`and(created_at.gte.${start},created_at.lt.${end})`)
   }
+
+  return query.or(ranges.join(","))
 }
 
-function applyMonthOnlyFilter(
-  products: ProductResponse[],
-  month: number
-): ProductResponse[] {
-  return products.filter(
-    (product) => new Date(product.created_at).getMonth() + 1 === month
-  )
+function applyListFilters<T>(query: T, filters: ListProductsQuery): T {
+  let next = query as FilterableQuery
+
+  if (filters.jewelry_type) {
+    next = next.eq("jewelry_type", filters.jewelry_type)
+  }
+
+  if (filters.payment === "paid") {
+    next = next.eq("payment_status", true)
+  } else if (filters.payment === "unpaid") {
+    next = next.eq("payment_status", false)
+  }
+
+  const dateRange = getDateRange(filters)
+  if (dateRange) {
+    next = next
+      .gte("created_at", dateRange.start)
+      .lt("created_at", dateRange.end)
+  } else if (filters.month) {
+    next = applyMonthOnlyFilter(next, filters.month)
+  }
+
+  return next as T
+}
+
+function buildItemsQuery(
+  supabase: ReturnType<typeof createSupabaseClientForUser>,
+  filters: ListProductsQuery
+) {
+  const selectQuery = filters.customer_name
+    ? `${PRODUCT_BASE_SELECT}, customers!inner(name)`
+    : PRODUCT_SELECT
+
+  let query = supabase.from("products").select(selectQuery, { count: "exact" })
+
+  if (filters.customer_name) {
+    query = query.ilike("customers.name", `%${filters.customer_name}%`)
+  }
+
+  query = applyListFilters(query, filters)
+
+  return query.order("created_at", {
+    ascending: false,
+  })
+}
+
+async function fetchFilteredSummaryTotal(
+  supabase: ReturnType<typeof createSupabaseClientForUser>,
+  filters: ListProductsQuery
+) {
+  const { data, error } = filters.customer_name
+    ? await applyListFilters(
+        supabase
+          .from("products")
+          .select("value, customers!inner(name)")
+          .ilike("customers.name", `%${filters.customer_name}%`),
+        filters
+      )
+    : await applyListFilters(
+        supabase.from("products").select("value"),
+        filters
+      )
+
+  if (error) {
+    console.error("[ProductService.list.summary]", error)
+    return 0
+  }
+
+  return (data ?? []).reduce((sum, row) => {
+    const value =
+      typeof row.value === "string" ? Number(row.value) : Number(row.value ?? 0)
+    return sum + (Number.isFinite(value) ? value : 0)
+  }, 0)
+}
+
+async function fetchAvailableYears(
+  supabase: ReturnType<typeof createSupabaseClientForUser>
+) {
+  const { data, error } = await supabase.rpc("get_my_product_years")
+
+  if (error) {
+    console.error("[ProductService.list.years]", error)
+    return getAvailableYears([])
+  }
+
+  const years = (data ?? []).map((row: { year: number }) => row.year)
+  return getAvailableYears(years)
 }
 
 class ProductService {
@@ -111,70 +192,15 @@ class ProductService {
     filters: ListProductsQuery
   ): Promise<ServiceResult<ProductListResult, ProductErrorCode>> {
     const supabase = createSupabaseClientForUser(accessToken)
+    const page = filters.page ?? 1
+    const limit = filters.limit ?? PRODUCTS_PAGE_SIZE
+    const from = (page - 1) * limit
+    const to = from + limit - 1
 
-    const { count: totalCount, error: countError } = await supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-
-    if (countError) {
-      console.error("[ProductService.list.count]", countError)
-      return {
-        status: false,
-        error: {
-          code: ProductErrorCode.PRODUCT_FETCH_FAILED,
-          message: "Não foi possível listar os registros.",
-        },
-      }
-    }
-
-    const { data: yearRows, error: yearsError } = await supabase
-      .from("products")
-      .select("created_at")
-
-    if (yearsError) {
-      console.error("[ProductService.list.years]", yearsError)
-      return {
-        status: false,
-        error: {
-          code: ProductErrorCode.PRODUCT_FETCH_FAILED,
-          message: "Não foi possível listar os registros.",
-        },
-      }
-    }
-
-    const availableYears = getAvailableYears(yearRows ?? [])
-
-    const selectQuery = filters.customer_name
-      ? `${PRODUCT_BASE_SELECT}, customers!inner(name)`
-      : PRODUCT_SELECT
-
-    let query = supabase
-      .from("products")
-      .select(selectQuery)
-      .order("created_at", { ascending: false })
-
-    if (filters.customer_name) {
-      query = query.ilike("customers.name", `%${filters.customer_name}%`)
-    }
-
-    if (filters.jewelry_type) {
-      query = query.eq("jewelry_type", filters.jewelry_type)
-    }
-
-    if (filters.payment === "paid") {
-      query = query.eq("payment_status", true)
-    } else if (filters.payment === "unpaid") {
-      query = query.eq("payment_status", false)
-    }
-
-    const dateRange = getDateRange(filters)
-    if (dateRange) {
-      query = query
-        .gte("created_at", dateRange.start)
-        .lt("created_at", dateRange.end)
-    }
-
-    const { data, error } = await query
+    const { data, error, count } = await buildItemsQuery(supabase, filters).range(
+      from,
+      to
+    )
 
     if (error) {
       console.error("[ProductService.list]", error)
@@ -187,18 +213,60 @@ class ProductService {
       }
     }
 
-    let items = (data ?? []).map((row) => mapProductRow(row))
+    const items = (data ?? []).map((row) => mapProductRow(row))
+    const total = count ?? 0
+    const hasMore = from + items.length < total
 
-    if (filters.month && !filters.year) {
-      items = applyMonthOnlyFilter(items, filters.month)
+    const result: ProductListResult = {
+      items,
+      page,
+      limit,
+      total,
+      has_more: hasMore,
     }
+
+    if (page !== 1) {
+      return {
+        status: true,
+        data: result,
+      }
+    }
+
+    const pageOneTasks: [
+      Promise<{ summaryTotal: number; hasAny: boolean }>,
+      Promise<number[]>,
+    ] = [
+      (async () => {
+        if (total > 0) {
+          const summaryTotal = await fetchFilteredSummaryTotal(supabase, filters)
+          return { summaryTotal, hasAny: true }
+        }
+
+        const { count: totalCount, error: countError } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+
+        if (countError) {
+          console.error("[ProductService.list.hasAny]", countError)
+          return { summaryTotal: 0, hasAny: false }
+        }
+
+        return { summaryTotal: 0, hasAny: (totalCount ?? 0) > 0 }
+      })(),
+      fetchAvailableYears(supabase),
+    ]
+
+    const [{ summaryTotal, hasAny }, availableYears] = await Promise.all(pageOneTasks)
 
     return {
       status: true,
       data: {
-        items,
-        summary: summarizeProducts(items),
-        has_any: (totalCount ?? 0) > 0,
+        ...result,
+        summary: {
+          count: total,
+          total: summaryTotal,
+        },
+        has_any: hasAny,
         available_years: availableYears,
       },
     }

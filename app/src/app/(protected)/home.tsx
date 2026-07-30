@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   useWindowDimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -47,14 +48,33 @@ export default function HomeScreen() {
     [filters, debouncedCustomerName]
   );
 
-  const { data, isLoading, isError, error, refetch, isRefetching } =
-    useProducts(queryFilters);
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useProducts(queryFilters);
 
   const horizontalPadding = width < 380 ? 16 : 24;
-  const products = data?.items ?? [];
-  const summary = data?.summary ?? { count: 0, total: 0 };
-  const hasAnyProduct = data?.has_any ?? false;
+  const firstPage = data?.pages?.[0];
+  const products = useMemo(
+    () => data?.pages?.flatMap((page) => page.items ?? []) ?? [],
+    [data]
+  );
+  const summary = firstPage?.summary ?? { count: 0, total: 0 };
+  const hasAnyProduct = firstPage?.has_any ?? false;
   const isInitialLoading = isLoading && !data;
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handlePressProduct = (productId: string) => {
     router.push({
@@ -111,6 +131,8 @@ export default function HomeScreen() {
             !hasAnyProduct && styles.listContentEmpty,
           ]}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.35}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -125,9 +147,17 @@ export default function HomeScreen() {
                 <ProductsSummary summary={summary} />
                 <ProductsFilters
                   filters={filters}
-                  availableYears={data?.available_years}
+                  availableYears={firstPage?.available_years}
                   onChange={setFilters}
                 />
+              </View>
+            ) : null
+          }
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={styles.footerLoaderText}>Carregando mais vendas...</Text>
               </View>
             ) : null
           }
@@ -190,6 +220,16 @@ const createStyles = (colors: ThemeColors) =>
     },
     separator: {
       height: 12,
+    },
+    footerLoader: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 20,
+    },
+    footerLoaderText: {
+      fontSize: 13,
+      color: colors.textSecondary,
     },
     emptyState: {
       alignItems: "center",

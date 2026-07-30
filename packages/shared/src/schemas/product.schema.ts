@@ -58,6 +58,9 @@ export type ProductResponse = z.infer<typeof productResponseSchema>;
 
 export const paymentFilterEnum = z.enum(["all", "paid", "unpaid"]);
 
+export const PRODUCTS_PAGE_SIZE = 20;
+export const PRODUCTS_MAX_PAGE_SIZE = 50;
+
 export const listProductsQuerySchema = z.object({
   customer_name: z.preprocess(
     (value) =>
@@ -68,6 +71,14 @@ export const listProductsQuerySchema = z.object({
   payment: paymentFilterEnum.optional().default("all"),
   month: z.coerce.number().int().min(1).max(12).optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PRODUCTS_MAX_PAGE_SIZE)
+    .optional()
+    .default(PRODUCTS_PAGE_SIZE),
 });
 
 export const productSummarySchema = z.object({
@@ -77,9 +88,13 @@ export const productSummarySchema = z.object({
 
 export const productListResultSchema = z.object({
   items: z.array(productResponseSchema),
-  summary: productSummarySchema,
-  has_any: z.boolean(),
-  available_years: z.array(z.number().int()),
+  summary: productSummarySchema.optional(),
+  has_any: z.boolean().optional(),
+  available_years: z.array(z.number().int()).optional(),
+  page: z.number().int(),
+  limit: z.number().int(),
+  has_more: z.boolean(),
+  total: z.number().int(),
 });
 
 export type ListProductsQueryDTO = z.input<typeof listProductsQuerySchema>;

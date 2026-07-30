@@ -1,9 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   CreateProductDTO,
   ListProductsQueryDTO,
   ProductListResult,
   ProductResponse,
+  PRODUCTS_PAGE_SIZE,
   UpdateProductDTO,
 } from "@app/shared";
 import {
@@ -26,26 +32,36 @@ interface QueryError extends Error {
   reason?: string;
 }
 
-export function useProducts(filters: ListProductsQueryDTO) {
+export type ProductsListFilters = Omit<ListProductsQueryDTO, "page" | "limit">;
+
+export function useProducts(filters: ProductsListFilters) {
   const { signed, loading } = useAuth();
 
-  return useQuery<ProductListResult, QueryError>({
+  return useInfiniteQuery<ProductListResult, QueryError>({
     queryKey: [PRODUCTS_KEY, filters],
     enabled: signed && !loading,
-    queryFn: async () => {
-      const res = await listProducts(filters);
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const res = await listProducts({
+        ...filters,
+        page: pageParam,
+        limit: PRODUCTS_PAGE_SIZE,
+      });
 
-      if (!res.success) {
-        const error = new Error(res.message) as QueryError;
+      if (!res.success || !res.data?.items) {
+        const error = new Error(
+          res.message || "Não foi possível carregar as vendas."
+        ) as QueryError;
         error.status = res.error?.status;
         error.reason = res.error?.reason;
         throw error;
       }
 
-      return res.data as ProductListResult;
+      return res.data;
     },
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.page + 1 : undefined,
     staleTime: 30 * 1000,
-    placeholderData: (previousData) => previousData,
   });
 }
 
