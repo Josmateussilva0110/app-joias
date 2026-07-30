@@ -7,6 +7,14 @@ import {
 } from "react";
 
 import { getAuth, removeAuth, saveAuth } from "@/storage/auth.storage";
+import {
+  clearBiometricLogin,
+  getBiometricCredentials,
+  isBiometricHardwareAvailable,
+  saveBiometricCredentials,
+  syncBiometricRefreshToken,
+  authenticateBiometric,
+} from "@/storage/biometric.storage";
 import { registerUser, loginUser, logoutUser } from "@/services/auth.service";
 import { refreshService } from "@/services/refresh.service";
 import { tokenManager } from "@/services/token.manager";
@@ -35,6 +43,9 @@ interface AuthContextData {
   login: (
     data: LoginDTO
   ) => Promise<{ success: boolean; message: string }>;
+  loginWithBiometric: () => Promise<{ success: boolean; message: string }>;
+  enableBiometricLogin: () => Promise<{ success: boolean; message: string }>;
+  disableBiometricLogin: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -57,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           refreshToken,
           expiresAt,
         });
+
+        await syncBiometricRefreshToken(current.user.email, refreshToken);
       }
     );
 
@@ -134,8 +147,91 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function establishSession(data: AuthData) {
     tokenManager.setTokens(data.accessToken, data.refreshToken);
     await saveAuth(data);
+    await syncBiometricRefreshToken(data.user.email, data.refreshToken);
     setUser(data.user);
     setSigned(true);
+  }
+
+  async function enableBiometricLogin() {
+    const available = await isBiometricHardwareAvailable();
+
+    if (!available) {
+      return {
+        success: false,
+        message: "Biometria não disponível neste dispositivo.",
+      };
+    }
+
+    const authenticated = await authenticateBiometric();
+
+    if (!authenticated) {
+      return {
+        success: false,
+        message: "Autenticação biométrica cancelada.",
+      };
+    }
+
+    const auth = await getAuth();
+
+    if (!auth) {
+      return {
+        success: false,
+        message: "Faça login novamente para ativar a biometria.",
+      };
+    }
+
+    await saveBiometricCredentials(auth.user.email, auth.refreshToken);
+
+    return {
+      success: true,
+      message: "Login biométrico ativado com sucesso.",
+    };
+  }
+
+  async function disableBiometricLogin() {
+    await clearBiometricLogin();
+  }
+
+  async function loginWithBiometric() {
+    const available = await isBiometricHardwareAvailable();
+
+    if (!available) {
+      return {
+        success: false,
+        message: "Biometria não disponível neste dispositivo.",
+      };
+    }
+
+    const credentials = await getBiometricCredentials();
+
+    if (!credentials) {
+      return {
+        success: false,
+        message: "Ative o login biométrico no perfil para usar esta opção.",
+      };
+    }
+
+    try {
+      const auth = await refreshService.refresh(credentials.refreshToken);
+
+      tokenManager.setTokens(auth.accessToken, auth.refreshToken);
+      await saveAuth(auth);
+      await syncBiometricRefreshToken(auth.user.email, auth.refreshToken);
+      setUser(auth.user);
+      setSigned(true);
+
+      return {
+        success: true,
+        message: "Login realizado com sucesso.",
+      };
+    } catch {
+      await clearBiometricLogin();
+
+      return {
+        success: false,
+        message: "Não foi possível entrar com biometria. Use e-mail e senha.",
+      };
+    }
   }
 
   async function register(dto: RegisterDTO) {
@@ -209,6 +305,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signed,
         loading,
         login,
+        loginWithBiometric,
+        enableBiometricLogin,
+        disableBiometricLogin,
         logout,
         register,
       }}

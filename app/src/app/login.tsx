@@ -6,6 +6,7 @@ import { useTheme } from "@/context/theme.context";
 
 import { AuthHeader } from "../features/auth/components/auth-header";
 import { LoginForm } from "../features/auth/components/login-form";
+import { BiometricLoginButton } from "../features/auth/components/biometric-login-button";
 import { LoginFooter } from "../features/auth/components/login-footer";
 
 export default function LoginScreen() {
@@ -52,6 +53,7 @@ export default function LoginScreen() {
             ]}
           >
             <LoginForm />
+            <BiometricLoginButton />
             <LoginFooter />
           </View>
         </KeyboardAwareScrollView>

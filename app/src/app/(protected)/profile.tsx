@@ -3,6 +3,7 @@ import { AppShell } from "@/components/appShell"
 import { ScreenWrapper } from "@/components/layout/screen-wrapper";
 import { ProfileUserCard } from "@/features/profile/components/profile-user-card";
 import { ProfileThemeCard } from "@/features/profile/components/profile-theme-card";
+import { ProfileBiometricCard } from "@/features/profile/components/profile-biometric-card";
 import { ProfileLogoutButton } from "@/features/profile/components/profile-logout-button";
 import { ProfileVersionIndicator } from "@/features/profile/components/profile-version-indicator";
 
@@ -21,6 +22,7 @@ export default function ProfileScreen() {
         <View style={[styles.content, { maxWidth: isTablet ? 500 : 420 }]}>
           <ProfileUserCard />
           <ProfileThemeCard />
+          <ProfileBiometricCard />
           <ProfileLogoutButton />
           <ProfileVersionIndicator />
         </View>
