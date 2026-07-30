@@ -12,7 +12,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { DollarSign, PlusCircle, Gem, CircleDollarSign, Save } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
-import { SelectField } from "@/components/ui/select-field";
 import { CustomerSelectField } from "@/features/customers/components/customer-select-field";
 import { ToggleRow } from "@/components/ui/toggle.row";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -27,7 +26,6 @@ import {
   toUpdateProductDTO,
   type ProductFormData,
 } from "@/schemas/product.schema";
-import { JEWELRY_TYPE_OPTIONS } from "../constants/product-labels";
 
 type ProductFormProps = {
   mode?: "create" | "edit";
@@ -66,7 +64,7 @@ export function ProductForm({
   } = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
     defaultValues: defaultValues ?? {
-      jewelry_type: "colar",
+      jewelry_type: "",
       customer_id: "",
       value: "",
       payment_status: false,
@@ -150,14 +148,17 @@ export function ProductForm({
       <Controller
         control={control}
         name="jewelry_type"
-        render={({ field: { value, onChange } }) => (
-          <SelectField
-            label="Tipo de joia*"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <FormField
+            label="Joia*"
             icon={Gem}
-            value={value}
-            options={JEWELRY_TYPE_OPTIONS}
-            onChange={onChange}
             error={errors.jewelry_type?.message}
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Ex: Colar de ouro"
+            autoCapitalize="sentences"
+            returnKeyType="next"
           />
         )}
       />

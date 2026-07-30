@@ -1,9 +1,6 @@
 import { requestData } from "./request";
 
-import {
-  LoginFormData,
-  RegisterFormData,
-} from "@/schemas/auth.schema";
+import { LoginFormData, RegisterFormData } from "@/schemas/auth.schema";
 
 import { AuthData } from "@/types/auth.types";
 import { AUTH_ROUTES } from "@/config/api-routes";

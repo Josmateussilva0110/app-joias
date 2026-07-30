@@ -1,22 +1,13 @@
 import { z } from "zod";
 
-export const jewelryTypeEnum = z.enum([
-  "colar",
-  "brinco",
-  "pulseira",
-  "anel",
-  "tornozeleira",
-  "broche",
-  "relogio",
-  "conjunto",
-  "bracelete",
-  "outro",
-]);
-
-export type JewelryType = z.infer<typeof jewelryTypeEnum>;
+export const jewelryDescriptionSchema = z
+  .string()
+  .trim()
+  .min(1, "Informe a joia.")
+  .max(120, "Descrição muito longa (máx. 120 caracteres).");
 
 export const createProductSchema = z.object({
-  jewelry_type: jewelryTypeEnum,
+  jewelry_type: jewelryDescriptionSchema,
   customer_id: z.uuid("Selecione um cliente válido."),
   value: z
     .number({ error: "Valor é obrigatório." })
@@ -45,7 +36,7 @@ export const productResponseSchema = z.object({
   created_by: z.uuid(),
   customer_id: z.uuid(),
   customer_name: z.string(),
-  jewelry_type: jewelryTypeEnum,
+  jewelry_type: z.string(),
   value: z.number(),
   payment_status: z.boolean(),
   created_at: z.string(),
@@ -67,7 +58,11 @@ export const listProductsQuerySchema = z.object({
       typeof value === "string" && value.trim() === "" ? undefined : value,
     z.string().trim().max(120).optional()
   ),
-  jewelry_type: jewelryTypeEnum.optional(),
+  jewelry_type: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().trim().max(120).optional()
+  ),
   payment: paymentFilterEnum.optional().default("all"),
   month: z.coerce.number().int().min(1).max(12).optional(),
   year: z.coerce.number().int().min(2000).max(2100).optional(),
@@ -102,6 +97,102 @@ export type ListProductsQuery = z.output<typeof listProductsQuerySchema>;
 export type ProductSummary = z.infer<typeof productSummarySchema>;
 export type ProductListResult = z.infer<typeof productListResultSchema>;
 
+export const productAnalyticsQuerySchema = listProductsQuerySchema.omit({
+  page: true,
+  limit: true,
+});
+
+export const analyticsTrendPointSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  label: z.string(),
+  total: z.number(),
+  count: z.number(),
+});
+
+export const analyticsRankItemSchema = z.object({
+  name: z.string(),
+  total: z.number(),
+  count: z.number(),
+});
+
+export const analyticsPaymentSplitSchema = z.object({
+  paid: z.object({
+    total: z.number(),
+    count: z.number(),
+  }),
+  unpaid: z.object({
+    total: z.number(),
+    count: z.number(),
+  }),
+});
+
+export const analyticsSummarySchema = z.object({
+  count: z.number(),
+  total: z.number(),
+  average_ticket: z.number(),
+  unpaid_total: z.number(),
+  unpaid_count: z.number(),
+});
+
+export const productAnalyticsSchema = z.object({
+  summary: analyticsSummarySchema,
+  monthly_trend: z.array(analyticsTrendPointSchema),
+  payment_split: analyticsPaymentSplitSchema,
+  top_jewelry: z.array(analyticsRankItemSchema),
+  top_customers: z.array(analyticsRankItemSchema),
+  available_years: z.array(z.number().int()),
+});
+
+export type ProductAnalyticsQueryDTO = z.input<typeof productAnalyticsQuerySchema>;
+export type ProductAnalyticsQuery = z.output<typeof productAnalyticsQuerySchema>;
+export type ProductAnalytics = z.infer<typeof productAnalyticsSchema>;
+export type AnalyticsTrendPoint = z.infer<typeof analyticsTrendPointSchema>;
+export type AnalyticsRankItem = z.infer<typeof analyticsRankItemSchema>;
+
+export const filterSelectOptionSchema = z.object({
+  value: z.union([z.string(), z.number(), z.null()]),
+  label: z.string(),
+});
+
+export const productFilterOptionsSchema = z.object({
+  years: z.array(filterSelectOptionSchema),
+  months: z.array(filterSelectOptionSchema),
+  payments: z.array(
+    z.object({
+      value: paymentFilterEnum,
+      label: z.string(),
+    })
+  ),
+  defaults: z.object({
+    year: z.number().int().nullable(),
+    month: z.number().int().nullable(),
+    payment: paymentFilterEnum,
+  }),
+});
+
+export const productFiltersQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+});
+
+export type ProductFilterOptions = z.infer<typeof productFilterOptionsSchema>;
+export type ProductFiltersQueryDTO = z.input<typeof productFiltersQuerySchema>;
+export type ProductFiltersQuery = z.output<typeof productFiltersQuerySchema>;
+
+export const MONTH_SHORT_LABELS = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+] as const;
+
 type CustomerRelation = { name: string } | { name: string }[] | null | undefined;
 
 function getCustomerName(customers: CustomerRelation): string {
@@ -114,7 +205,7 @@ export function mapProductRow(row: {
   id: string;
   created_by: string;
   customer_id: string;
-  jewelry_type: JewelryType;
+  jewelry_type: string;
   value: number | string;
   payment_status: boolean;
   created_at: string;

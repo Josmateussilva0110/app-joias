@@ -226,7 +226,7 @@ class UserService {
         try {
             const { data, error } = await supabaseAdmin
                 .from("users")
-                .select("id, username, email")
+                .select("id, username, email, earnings_percent")
                 .eq("id", userId)
                 .single()
 
@@ -246,6 +246,7 @@ class UserService {
                     id: data.id,
                     username: data.username,
                     email: data.email,
+                    earnings_percent: data.earnings_percent ?? 100,
                 },
             }
         } catch (error) {
@@ -267,7 +268,7 @@ class UserService {
                 .from("users")
                 .update({ username: updates.username })
                 .eq("id", userId)
-                .select("id, username, email")
+                .select("id, username, email, earnings_percent")
                 .single()
 
             if (error || !data) {
@@ -286,6 +287,7 @@ class UserService {
                     id: data.id,
                     username: data.username,
                     email: data.email,
+                    earnings_percent: data.earnings_percent ?? 100,
                 },
             }
         } catch (error) {
@@ -296,6 +298,50 @@ class UserService {
                 error: {
                     code: UserErrorCode.USER_UPDATE_FAILED,
                     message: "Erro ao atualizar perfil do usuário.",
+                },
+            }
+        }
+    }
+
+    async updateEarningsPercent(
+        userId: string,
+        earningsPercent: number
+    ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
+        try {
+            const { data, error } = await supabaseAdmin
+                .from("users")
+                .update({ earnings_percent: earningsPercent })
+                .eq("id", userId)
+                .select("id, username, email, earnings_percent")
+                .single()
+
+            if (error || !data) {
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_UPDATE_FAILED,
+                        message: "Não foi possível salvar o percentual de ganho.",
+                    },
+                }
+            }
+
+            return {
+                status: true,
+                data: {
+                    id: data.id,
+                    username: data.username,
+                    email: data.email,
+                    earnings_percent: data.earnings_percent ?? 100,
+                },
+            }
+        } catch (error) {
+            console.error("[UserService.updateEarningsPercent] error:", error)
+
+            return {
+                status: false,
+                error: {
+                    code: UserErrorCode.USER_UPDATE_FAILED,
+                    message: "Erro ao salvar o percentual de ganho.",
                 },
             }
         }

@@ -1,6 +1,6 @@
 import { View, TouchableOpacity, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
-import { Settings, Users } from "lucide-react-native";
+import { useRouter, type Href } from "expo-router";
+import { BarChart3, Settings, Users } from "lucide-react-native";
 import { useTheme } from "@/context/theme.context";
 
 export function HomeHeaderActions() {
@@ -9,6 +9,15 @@ export function HomeHeaderActions() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        onPress={() => router.push("/(protected)/analytics" as Href)}
+        activeOpacity={0.7}
+        style={[styles.button, { backgroundColor: colors.backgroundElement }]}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <BarChart3 size={18} color={colors.textSecondary} />
+      </TouchableOpacity>
+
       <TouchableOpacity
         onPress={() => router.push("/(protected)/customers")}
         activeOpacity={0.7}

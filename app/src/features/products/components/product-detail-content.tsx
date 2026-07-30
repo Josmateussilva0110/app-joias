@@ -5,7 +5,6 @@ import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
   formatCurrency,
   formatProductDate,
-  JEWELRY_TYPE_LABELS,
 } from "../constants/product-labels";
 import { PaymentStatusBadge } from "./payment-status-badge";
 
@@ -48,7 +47,7 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
         </View>
         <Text style={styles.heroValue}>{formatCurrency(product.value)}</Text>
         <Text style={styles.heroTitle} numberOfLines={2}>
-          {JEWELRY_TYPE_LABELS[product.jewelry_type]}
+          {product.jewelry_type}
         </Text>
         <Text style={styles.heroSubtitle} numberOfLines={1}>
           {product.customer_name}
@@ -69,8 +68,8 @@ export function ProductDetailContent({ product }: ProductDetailContentProps) {
         <View style={styles.divider} />
         <DetailRow
           icon={Gem}
-          label="Tipo de joia"
-          value={JEWELRY_TYPE_LABELS[product.jewelry_type]}
+          label="Joia"
+          value={product.jewelry_type}
           colors={colors}
         />
         <View style={styles.divider} />

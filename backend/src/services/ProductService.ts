@@ -1,6 +1,10 @@
 import {
   CreateProductDTO,
   ListProductsQuery,
+  ProductAnalytics,
+  ProductAnalyticsQuery,
+  ProductFilterOptions,
+  ProductFiltersQuery,
   ProductListResult,
   ProductResponse,
   PRODUCTS_PAGE_SIZE,
@@ -10,6 +14,11 @@ import {
 import { createSupabaseClientForUser } from "../database/supabase/supabase"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { ProductErrorCode } from "../types/code/productCode"
+import {
+  AnalyticsSourceRow,
+  buildProductAnalytics,
+} from "./productAnalytics"
+import { buildProductFilterOptions } from "./productFilterOptions"
 
 const PRODUCT_BASE_SELECT =
   "id, created_by, customer_id, jewelry_type, value, payment_status, created_at, updated_at"
@@ -20,6 +29,7 @@ const MIN_FILTER_YEAR = 2026
 
 type FilterableQuery = {
   eq: (column: string, value: unknown) => FilterableQuery
+  ilike: (column: string, pattern: string) => FilterableQuery
   gte: (column: string, value: string) => FilterableQuery
   lt: (column: string, value: string) => FilterableQuery
   or: (filters: string) => FilterableQuery
@@ -36,7 +46,7 @@ function getAvailableYears(years: number[]) {
   return sortedYears
 }
 
-function getDateRange(filters: ListProductsQuery) {
+function getDateRange(filters: Pick<ListProductsQuery, "month" | "year">) {
   if (!filters.year) return null
 
   if (filters.month) {
@@ -63,11 +73,17 @@ function applyMonthOnlyFilter(query: FilterableQuery, month: number) {
   return query.or(ranges.join(","))
 }
 
-function applyListFilters<T>(query: T, filters: ListProductsQuery): T {
+function applyListFilters<T>(
+  query: T,
+  filters: Pick<
+    ListProductsQuery,
+    "customer_name" | "jewelry_type" | "payment" | "month" | "year"
+  >
+): T {
   let next = query as FilterableQuery
 
   if (filters.jewelry_type) {
-    next = next.eq("jewelry_type", filters.jewelry_type)
+    next = next.ilike("jewelry_type", `%${filters.jewelry_type}%`)
   }
 
   if (filters.payment === "paid") {
@@ -150,6 +166,22 @@ async function fetchAvailableYears(
 
   const years = (data ?? []).map((row: { year: number }) => row.year)
   return getAvailableYears(years)
+}
+
+async function fetchAvailableMonths(
+  supabase: ReturnType<typeof createSupabaseClientForUser>,
+  year?: number
+) {
+  const { data, error } = await supabase.rpc("get_my_product_months", {
+    filter_year: year ?? null,
+  })
+
+  if (error) {
+    console.error("[ProductService.filters.months]", error)
+    return []
+  }
+
+  return (data ?? []).map((row: { month: number }) => row.month)
 }
 
 class ProductService {
@@ -349,6 +381,67 @@ class ProductService {
     return {
       status: true,
       data: mapProductRow(row),
+    }
+  }
+
+  async getAnalytics(
+    accessToken: string,
+    filters: ProductAnalyticsQuery
+  ): Promise<ServiceResult<ProductAnalytics, ProductErrorCode>> {
+    const supabase = createSupabaseClientForUser(accessToken)
+
+    const selectQuery = filters.customer_name
+      ? "value, payment_status, jewelry_type, created_at, customers!inner(name)"
+      : "value, payment_status, jewelry_type, created_at, customers(name)"
+
+    let query = supabase.from("products").select(selectQuery)
+
+    if (filters.customer_name) {
+      query = query.ilike("customers.name", `%${filters.customer_name}%`)
+    }
+
+    query = applyListFilters(query, filters)
+
+    const [{ data, error }, availableYears] = await Promise.all([
+      query,
+      fetchAvailableYears(supabase),
+    ])
+
+    if (error) {
+      console.error("[ProductService.getAnalytics]", error)
+      return {
+        status: false,
+        error: {
+          code: ProductErrorCode.PRODUCT_FETCH_FAILED,
+          message: "Não foi possível carregar a análise.",
+        },
+      }
+    }
+
+    return {
+      status: true,
+      data: buildProductAnalytics(
+        (data ?? []) as AnalyticsSourceRow[],
+        filters,
+        availableYears
+      ),
+    }
+  }
+
+  async getFilterOptions(
+    accessToken: string,
+    query: ProductFiltersQuery
+  ): Promise<ServiceResult<ProductFilterOptions, ProductErrorCode>> {
+    const supabase = createSupabaseClientForUser(accessToken)
+
+    const [availableYears, availableMonths] = await Promise.all([
+      fetchAvailableYears(supabase),
+      fetchAvailableMonths(supabase, query.year),
+    ])
+
+    return {
+      status: true,
+      data: buildProductFilterOptions(availableYears, availableMonths),
     }
   }
 

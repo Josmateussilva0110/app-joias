@@ -6,7 +6,6 @@ import { useToast } from "@/context/toast.context";
 import { useDeleteProduct } from "@/hooks/use-products";
 import {
   formatCurrency,
-  JEWELRY_TYPE_LABELS,
 } from "@/features/products/constants/product-labels";
 
 type ProductDeleteActionProps = {
@@ -26,7 +25,7 @@ export function ProductDeleteAction({
     <DeleteAction
       label="Excluir venda"
       title="Excluir venda"
-      message={`Deseja remover a venda de ${JEWELRY_TYPE_LABELS[product.jewelry_type]} (${formatCurrency(product.value)})?`}
+      message={`Deseja remover a venda de ${product.jewelry_type} (${formatCurrency(product.value)})?`}
       onConfirm={async () => {
         await deleteProduct.mutateAsync(product.id);
         show("success", "Venda excluída com sucesso.");

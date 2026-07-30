@@ -4,6 +4,8 @@ import {
   updateProductSchema,
   productIdParamSchema,
   listProductsQuerySchema,
+  productAnalyticsQuerySchema,
+  productFiltersQuerySchema,
 } from "@app/shared"
 import ProductController from "../controllers/productController"
 import { authMiddleware } from "../middleware/auth"
@@ -23,6 +25,20 @@ router.get(
   authMiddleware,
   validate(listProductsQuerySchema, "query"),
   ProductController.list
+)
+
+router.get(
+  "/products/analytics",
+  authMiddleware,
+  validate(productAnalyticsQuerySchema, "query"),
+  ProductController.analytics
+)
+
+router.get(
+  "/products/filters",
+  authMiddleware,
+  validate(productFiltersQuerySchema, "query"),
+  ProductController.filters
 )
 
 router.get(

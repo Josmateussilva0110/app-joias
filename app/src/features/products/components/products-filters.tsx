@@ -1,13 +1,11 @@
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { CalendarDays, CircleDollarSign, Gem, Search } from "lucide-react-native";
+import { ProductFilterOptions } from "@app/shared";
 
 import { SelectField } from "@/components/ui/select-field";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
-  buildJewelryFilterOptions,
-  buildMonthOptions,
-  buildPaymentFilterOptions,
-  buildYearOptions,
+  mapFilterOptionsToSelect,
   parseMonthFilter,
   parseYearFilter,
   toMonthFilterValue,
@@ -17,22 +15,21 @@ import {
 
 type ProductsFiltersProps = {
   filters: ProductFilters;
-  availableYears?: number[];
+  filterOptions: ProductFilterOptions;
   onChange: (filters: ProductFilters) => void;
 };
 
 export function ProductsFilters({
   filters,
-  availableYears = [],
+  filterOptions,
   onChange,
 }: ProductsFiltersProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
 
-  const jewelryOptions = buildJewelryFilterOptions();
-  const paymentOptions = buildPaymentFilterOptions();
-  const monthOptions = buildMonthOptions();
-  const yearOptions = buildYearOptions(availableYears);
+  const paymentOptions = filterOptions.payments;
+  const monthOptions = mapFilterOptionsToSelect(filterOptions.months);
+  const yearOptions = mapFilterOptionsToSelect(filterOptions.years);
 
   return (
     <View style={styles.card}>
@@ -54,23 +51,25 @@ export function ProductsFilters({
         />
       </View>
 
-      <View style={styles.grid}>
-        <View style={styles.gridItem}>
-          <SelectField
-            compact
-            label="Categoria"
-            icon={Gem}
-            value={filters.jewelryType}
-            options={jewelryOptions}
-            onChange={(jewelryType) =>
-              onChange({
-                ...filters,
-                jewelryType: jewelryType as ProductFilters["jewelryType"],
-              })
-            }
-          />
-        </View>
+      <View style={styles.searchWrap}>
+        <Gem size={16} color={colors.textSecondary} />
+        <TextInput
+          value={filters.jewelryName}
+          onChangeText={(jewelryName) =>
+            onChange({
+              ...filters,
+              jewelryName,
+            })
+          }
+          placeholder="Buscar joia"
+          placeholderTextColor={colors.textSecondary}
+          autoCapitalize="sentences"
+          autoCorrect={false}
+          style={styles.searchInput}
+        />
+      </View>
 
+      <View style={styles.grid}>
         <View style={styles.gridItem}>
           <SelectField
             compact
@@ -81,7 +80,7 @@ export function ProductsFilters({
             onChange={(payment) =>
               onChange({
                 ...filters,
-                payment,
+                payment: payment as ProductFilters["payment"],
               })
             }
           />
@@ -114,6 +113,7 @@ export function ProductsFilters({
               onChange({
                 ...filters,
                 year: parseYearFilter(value),
+                month: null,
               })
             }
           />

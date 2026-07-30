@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { ListProductsQuery } from "@app/shared"
+import { ListProductsQuery, ProductAnalyticsQuery, ProductFiltersQuery } from "@app/shared"
 import ProductService from "../services/ProductService"
 import { productErrorHttpStatusMap } from "../errors/productErrorHttpMapper"
 import { getHttpStatusFromError } from "../utils/getHttpStatusFromError"
@@ -33,6 +33,48 @@ class ProductController {
   async list(request: Request, response: Response): Promise<Response> {
     const filters = request.validatedQuery as ListProductsQuery
     const result = await ProductService.list(getAccessToken(request), filters)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        productErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      data: result.data,
+    })
+  }
+
+  async analytics(request: Request, response: Response): Promise<Response> {
+    const filters = request.validatedQuery as ProductAnalyticsQuery
+    const result = await ProductService.getAnalytics(getAccessToken(request), filters)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        productErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      data: result.data,
+    })
+  }
+
+  async filters(request: Request, response: Response): Promise<Response> {
+    const query = request.validatedQuery as ProductFiltersQuery
+    const result = await ProductService.getFilterOptions(getAccessToken(request), query)
 
     if (!result.status) {
       const httpStatus = getHttpStatusFromError(

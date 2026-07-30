@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -22,11 +22,11 @@ import { ProductListItem } from "@/features/products/components/product-list-ite
 import { ProductsSummary } from "@/features/products/components/products-summary";
 import { ProductsFilters } from "@/features/products/components/products-filters";
 import {
-  getDefaultProductFilters,
   toListProductsQuery,
 } from "@/features/products/utils/filter-products";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useProducts } from "@/hooks/use-products";
+import { useProductFiltersState } from "@/hooks/use-product-filters";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 
@@ -36,15 +36,25 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = createStyles(colors);
-  const [filters, setFilters] = useState(getDefaultProductFilters);
-  const debouncedCustomerName = useDebouncedValue(filters.customerName, 400);
+  const {
+    filters,
+    setFilters,
+    filterOptions,
+    isLoading: isLoadingFilters,
+    isError: isFiltersError,
+    error: filtersError,
+    refetch: refetchFilters,
+  } = useProductFiltersState();
+  const debouncedCustomerName = useDebouncedValue(filters?.customerName ?? "", 400);
 
   const queryFilters = useMemo(
     () =>
-      toListProductsQuery({
-        ...filters,
-        customerName: debouncedCustomerName,
-      }),
+      filters
+        ? toListProductsQuery({
+            ...filters,
+            customerName: debouncedCustomerName,
+          })
+        : undefined,
     [filters, debouncedCustomerName]
   );
 
@@ -58,7 +68,7 @@ export default function HomeScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useProducts(queryFilters);
+  } = useProducts(queryFilters, Boolean(filters));
 
   const horizontalPadding = width < 380 ? 16 : 24;
   const firstPage = data?.pages?.[0];
@@ -82,6 +92,33 @@ export default function HomeScreen() {
       params: { id: productId },
     });
   };
+
+  if (isLoadingFilters || !filters || !filterOptions) {
+    return (
+      <AppShell
+        title="Vendas"
+        subtitle={APP_NAME}
+        rightElement={<HomeHeaderActions />}
+      >
+        <LoadingState message="Carregando filtros..." />
+      </AppShell>
+    );
+  }
+
+  if (isFiltersError) {
+    return (
+      <AppShell
+        title="Vendas"
+        subtitle={APP_NAME}
+        rightElement={<HomeHeaderActions />}
+      >
+        <ErrorState
+          error={filtersError?.message ?? "Não foi possível carregar os filtros."}
+          onRetry={() => refetchFilters()}
+        />
+      </AppShell>
+    );
+  }
 
   if (isInitialLoading) {
     return (
@@ -147,7 +184,7 @@ export default function HomeScreen() {
                 <ProductsSummary summary={summary} />
                 <ProductsFilters
                   filters={filters}
-                  availableYears={firstPage?.available_years}
+                  filterOptions={filterOptions}
                   onChange={setFilters}
                 />
               </View>

@@ -1,14 +1,13 @@
 import { z } from "zod";
 import {
-  createProductSchema,
-  jewelryTypeEnum,
+  jewelryDescriptionSchema,
   type CreateProductDTO,
   type ProductResponse,
   type UpdateProductDTO,
 } from "@app/shared";
 
 export const productFormSchema = z.object({
-  jewelry_type: jewelryTypeEnum,
+  jewelry_type: jewelryDescriptionSchema,
   customer_id: z
     .string()
     .uuid("Selecione um cliente."),
@@ -39,7 +38,7 @@ export function toProductFormData(product: ProductResponse): ProductFormData {
 
 export function toCreateProductDTO(data: ProductFormData): CreateProductDTO {
   return {
-    jewelry_type: data.jewelry_type,
+    jewelry_type: data.jewelry_type.trim(),
     customer_id: data.customer_id,
     value: Number(data.value.replace(",", ".")),
     payment_status: data.payment_status,

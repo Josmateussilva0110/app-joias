@@ -6,7 +6,6 @@ import {
   formatCurrency,
   formatProductDate,
   getPaymentStatusLabel,
-  JEWELRY_TYPE_LABELS,
 } from "../constants/product-labels";
 
 type ProductListItemProps = {
@@ -52,8 +51,7 @@ export function ProductListItem({ product, onPress }: ProductListItemProps) {
         </View>
 
         <Text style={styles.meta}>
-          {JEWELRY_TYPE_LABELS[product.jewelry_type]} ·{" "}
-          {formatProductDate(product.created_at)}
+          {product.jewelry_type} · {formatProductDate(product.created_at)}
         </Text>
 
         <Text style={styles.value}>{formatCurrency(product.value)}</Text>

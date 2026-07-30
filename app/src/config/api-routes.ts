@@ -8,6 +8,8 @@ export const AUTH_ROUTES = {
 export const PRODUCT_ROUTES = {
   list: "/products",
   create: "/products",
+  analytics: "/products/analytics",
+  filters: "/products/filters",
 } as const;
 
 export const CUSTOMER_ROUTES = {

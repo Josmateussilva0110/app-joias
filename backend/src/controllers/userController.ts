@@ -137,6 +137,31 @@ class UserController {
       data: result.data,
     })
   }
+
+  async updateEarningsPercent(request: Request, response: Response): Promise<Response> {
+    const userId = request.user.id
+    const { earnings_percent } = request.body
+
+    const result = await UserService.updateEarningsPercent(userId, earnings_percent)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: "Percentual de ganho salvo com sucesso.",
+      data: result.data,
+    })
+  }
+
 }
 
 export default new UserController()

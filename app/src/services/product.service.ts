@@ -1,6 +1,8 @@
 import {
   CreateProductDTO,
   ListProductsQueryDTO,
+  ProductAnalytics,
+  ProductAnalyticsQueryDTO,
   ProductListResult,
   ProductResponse,
   UpdateProductDTO,
@@ -11,6 +13,14 @@ import { requestData } from "./request";
 export function listProducts(filters: ListProductsQueryDTO = {}) {
   return requestData<ProductListResult>({
     endpoint: PRODUCT_ROUTES.list,
+    method: "GET",
+    params: filters,
+  });
+}
+
+export function getProductAnalytics(filters: ProductAnalyticsQueryDTO = {}) {
+  return requestData<ProductAnalytics>({
+    endpoint: PRODUCT_ROUTES.analytics,
     method: "GET",
     params: filters,
   });
