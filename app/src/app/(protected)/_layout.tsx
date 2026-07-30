@@ -22,6 +22,8 @@ export default function ProtectedLayout() {
       <Stack.Screen name="customers/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="customers/[id]/edit" options={{ headerShown: false }} />
       <Stack.Screen name="products/new" options={{ headerShown: false }} />
+      <Stack.Screen name="products/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="products/[id]/edit" options={{ headerShown: false }} />
       <Stack.Screen name="profile" options={{ headerShown: false }} />
     </Stack>
   );

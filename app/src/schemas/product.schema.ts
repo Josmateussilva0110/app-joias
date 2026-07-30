@@ -3,6 +3,8 @@ import {
   createProductSchema,
   jewelryTypeEnum,
   type CreateProductDTO,
+  type ProductResponse,
+  type UpdateProductDTO,
 } from "@app/shared";
 
 export const productFormSchema = z.object({
@@ -23,6 +25,18 @@ export const productFormSchema = z.object({
 
 export type ProductFormData = z.infer<typeof productFormSchema>;
 
+export function toProductFormData(product: ProductResponse): ProductFormData {
+  return {
+    jewelry_type: product.jewelry_type,
+    customer_id: product.customer_id,
+    value: product.value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }),
+    payment_status: product.payment_status,
+  };
+}
+
 export function toCreateProductDTO(data: ProductFormData): CreateProductDTO {
   return {
     jewelry_type: data.jewelry_type,
@@ -30,4 +44,8 @@ export function toCreateProductDTO(data: ProductFormData): CreateProductDTO {
     value: Number(data.value.replace(",", ".")),
     payment_status: data.payment_status,
   };
+}
+
+export function toUpdateProductDTO(data: ProductFormData): UpdateProductDTO {
+  return toCreateProductDTO(data);
 }

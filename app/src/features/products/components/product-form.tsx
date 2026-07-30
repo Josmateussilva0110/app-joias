@@ -9,7 +9,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { DollarSign, PlusCircle, Gem, CircleDollarSign } from "lucide-react-native";
+import { DollarSign, PlusCircle, Gem, CircleDollarSign, Save } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
 import { SelectField } from "@/components/ui/select-field";
@@ -19,21 +19,34 @@ import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
-import { useCreateProduct } from "@/hooks/use-products";
+import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
 import { useCustomers } from "@/hooks/use-customers";
 import {
   productFormSchema,
   toCreateProductDTO,
+  toUpdateProductDTO,
   type ProductFormData,
 } from "@/schemas/product.schema";
 import { JEWELRY_TYPE_OPTIONS } from "../constants/product-labels";
 
-export function ProductForm() {
+type ProductFormProps = {
+  mode?: "create" | "edit";
+  productId?: string;
+  defaultValues?: ProductFormData;
+};
+
+export function ProductForm({
+  mode = "create",
+  productId,
+  defaultValues,
+}: ProductFormProps) {
   const router = useRouter();
   const { show } = useToast();
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct(productId ?? "");
+  const isEditMode = mode === "edit";
   const {
     data: customers,
     isLoading: isLoadingCustomers,
@@ -52,7 +65,7 @@ export function ProductForm() {
     formState: { errors, isSubmitting },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productFormSchema),
-    defaultValues: {
+    defaultValues: defaultValues ?? {
       jewelry_type: "colar",
       customer_id: "",
       value: "",
@@ -61,16 +74,31 @@ export function ProductForm() {
   });
 
   const isPaid = watch("payment_status");
+  const isPending = isEditMode ? updateProduct.isPending : createProduct.isPending;
 
   const onSubmit = async (data: ProductFormData) => {
     try {
-      await createProduct.mutateAsync(toCreateProductDTO(data));
-      show("success", "Venda registrada com sucesso!");
+      if (isEditMode) {
+        if (!productId) {
+          throw new Error("Venda inválida.");
+        }
+
+        await updateProduct.mutateAsync(toUpdateProductDTO(data));
+        show("success", "Venda atualizada com sucesso!");
+      } else {
+        await createProduct.mutateAsync(toCreateProductDTO(data));
+        show("success", "Venda registrada com sucesso!");
+      }
+
       router.back();
     } catch (error) {
       show(
         "error",
-        error instanceof Error ? error.message : "Não foi possível registrar a venda."
+        error instanceof Error
+          ? error.message
+          : isEditMode
+            ? "Não foi possível atualizar a venda."
+            : "Não foi possível registrar a venda."
       );
     }
   };
@@ -183,9 +211,9 @@ export function ProductForm() {
 
       <TouchableOpacity
         onPress={handleSubmit(onSubmit, onInvalid)}
-        disabled={isSubmitting || createProduct.isPending}
+        disabled={isSubmitting || isPending}
         activeOpacity={0.85}
-        style={(isSubmitting || createProduct.isPending) && styles.buttonDisabled}
+        style={(isSubmitting || isPending) && styles.buttonDisabled}
       >
         <LinearGradient
           colors={[colors.primary, "#9A7840"]}
@@ -193,11 +221,17 @@ export function ProductForm() {
           end={{ x: 1, y: 0 }}
           style={styles.button}
         >
-          <PlusCircle size={18} color={colors.onPrimary} />
+          {isEditMode ? (
+            <Save size={18} color={colors.onPrimary} />
+          ) : (
+            <PlusCircle size={18} color={colors.onPrimary} />
+          )}
           <Text style={[styles.buttonText, { color: colors.onPrimary }]}>
-            {isSubmitting || createProduct.isPending
+            {isSubmitting || isPending
               ? "Salvando..."
-              : "Registrar venda"}
+              : isEditMode
+                ? "Salvar alterações"
+                : "Registrar venda"}
           </Text>
         </LinearGradient>
       </TouchableOpacity>

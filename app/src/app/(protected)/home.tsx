@@ -56,6 +56,13 @@ export default function HomeScreen() {
   const hasAnyProduct = data?.has_any ?? false;
   const isInitialLoading = isLoading && !data;
 
+  const handlePressProduct = (productId: string) => {
+    router.push({
+      pathname: "/(protected)/products/[id]",
+      params: { id: productId },
+    });
+  };
+
   if (isInitialLoading) {
     return (
       <AppShell
@@ -89,7 +96,12 @@ export default function HomeScreen() {
         <FlatList
           data={products}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ProductListItem product={item} />}
+          renderItem={({ item }) => (
+            <ProductListItem
+              product={item}
+              onPress={() => handlePressProduct(item.id)}
+            />
+          )}
           contentContainerStyle={[
             styles.listContent,
             {

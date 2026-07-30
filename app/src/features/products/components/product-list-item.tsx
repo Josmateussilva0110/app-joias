@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
-import { Gem } from "lucide-react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ChevronRight, Gem } from "lucide-react-native";
 import { ProductResponse } from "@app/shared";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
@@ -11,15 +11,20 @@ import {
 
 type ProductListItemProps = {
   product: ProductResponse;
+  onPress: (product: ProductResponse) => void;
 };
 
-export function ProductListItem({ product }: ProductListItemProps) {
+export function ProductListItem({ product, onPress }: ProductListItemProps) {
   const { colors } = useTheme();
   const styles = createStyles(colors);
   const isPaid = product.payment_status;
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity
+      onPress={() => onPress(product)}
+      activeOpacity={0.85}
+      style={styles.card}
+    >
       <View style={styles.iconWrap}>
         <Gem size={18} color={colors.primary} strokeWidth={1.75} />
       </View>
@@ -53,7 +58,9 @@ export function ProductListItem({ product }: ProductListItemProps) {
 
         <Text style={styles.value}>{formatCurrency(product.value)}</Text>
       </View>
-    </View>
+
+      <ChevronRight size={18} color={colors.textSecondary} />
+    </TouchableOpacity>
   );
 }
 
@@ -61,7 +68,7 @@ const createStyles = (colors: ThemeColors) =>
   StyleSheet.create({
     card: {
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
       gap: 14,
       padding: 16,
       borderRadius: 18,
@@ -104,7 +111,7 @@ const createStyles = (colors: ThemeColors) =>
       backgroundColor: colors.primaryMuted,
     },
     statusPending: {
-      backgroundColor: `${colors.warning}18`,
+      backgroundColor: `${colors.danger}18`,
     },
     statusText: {
       fontSize: 11,
@@ -114,7 +121,7 @@ const createStyles = (colors: ThemeColors) =>
       color: colors.success,
     },
     statusTextPending: {
-      color: colors.warning,
+      color: colors.danger,
     },
     meta: {
       fontSize: 13,
