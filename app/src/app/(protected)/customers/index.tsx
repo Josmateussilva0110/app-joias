@@ -12,7 +12,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Plus, Settings } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CustomerResponse } from "@app/shared";
-
 import { AppShell } from "@/components/appShell";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";

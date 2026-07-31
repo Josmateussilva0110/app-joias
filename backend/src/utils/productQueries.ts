@@ -26,9 +26,9 @@ export function buildItemsQuery(
 
   query = applyListFilters(query, filters)
 
-  return query.order("created_at", {
-    ascending: false,
-  })
+  return query
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
 }
 
 export async function fetchFilteredSummaryTotal(

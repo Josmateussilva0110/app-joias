@@ -7,7 +7,6 @@ import {
   View,
 } from "react-native";
 import { BarChart3 } from "lucide-react-native";
-
 import { AppShell } from "@/components/appShell";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";

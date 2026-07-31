@@ -13,7 +13,6 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Plus, Gem } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { AppShell } from "@/components/appShell";
 import { HomeHeaderActions } from "@/components/layout/home-header-actions";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -24,6 +23,7 @@ import { ProductsFilters } from "@/features/products/components/products-filters
 import {
   toListProductsQuery,
 } from "@/features/products/utils/filter-products";
+import { sortProductsDescending } from "@/features/products/utils/sort-products";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useProducts } from "@/hooks/use-products";
 import { useProductFiltersState } from "@/hooks/use-product-filters";
@@ -73,7 +73,10 @@ export default function HomeScreen() {
   const horizontalPadding = width < 380 ? 16 : 24;
   const firstPage = data?.pages?.[0];
   const products = useMemo(
-    () => data?.pages?.flatMap((page) => page.items ?? []) ?? [],
+    () =>
+      sortProductsDescending(
+        data?.pages?.flatMap((page) => page.items ?? []) ?? []
+      ),
     [data]
   );
   const summary = firstPage?.summary ?? { count: 0, total: 0 };

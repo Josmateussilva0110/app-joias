@@ -41,7 +41,8 @@ function RankRow({
     () => createRowStyles(colors, isCompact),
     [colors, isCompact]
   );
-  const fillWidth = `${Math.max(fillRatio * 100, fillRatio > 0 ? 5 : 0)}%`;
+  const filledFlex = fillRatio > 0 ? Math.max(fillRatio, 0.05) : 0;
+  const emptyFlex = Math.max(1 - filledFlex, 0);
 
   return (
     <View style={styles.row}>
@@ -66,12 +67,17 @@ function RankRow({
       </View>
 
       <View style={[styles.track, { backgroundColor: chartColors.grid }]}>
-        <LinearGradient
-          colors={[barColor, `${barColor}BB`]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={[styles.bar, { width: fillWidth }]}
-        />
+        {filledFlex > 0 ? (
+          <View style={[styles.barSegment, { flex: filledFlex }]}>
+            <LinearGradient
+              colors={[barColor, `${barColor}BB`]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </View>
+        ) : null}
+        {emptyFlex > 0 ? <View style={{ flex: emptyFlex }} /> : null}
       </View>
     </View>
   );
@@ -178,10 +184,12 @@ const createRowStyles = (
       height: isCompact ? 8 : 10,
       borderRadius: 999,
       overflow: "hidden",
+      flexDirection: "row",
     },
-    bar: {
+    barSegment: {
+      minWidth: 4,
       height: "100%",
       borderRadius: 999,
-      minWidth: 4,
+      overflow: "hidden",
     },
   });

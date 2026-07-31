@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { formatCurrency } from "@/features/products/constants/product-labels";
 import type { ProductAnalytics } from "@app/shared";

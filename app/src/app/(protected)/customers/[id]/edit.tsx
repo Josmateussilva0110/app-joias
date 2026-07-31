@@ -1,5 +1,4 @@
 import { useLocalSearchParams } from "expo-router";
-
 import { AppShell } from "@/components/appShell";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
