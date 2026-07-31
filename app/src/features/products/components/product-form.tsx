@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { DollarSign, PlusCircle, Gem, CircleDollarSign, Save } from "lucide-react-native";
 
 import { FormField } from "@/components/ui/form-field";
+import { DateField } from "@/components/ui/date-field";
 import { CustomerSelectField } from "@/features/customers/components/customer-select-field";
 import { ToggleRow } from "@/components/ui/toggle.row";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -21,16 +22,18 @@ import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
 import { useCustomers } from "@/hooks/use-customers";
 import {
+  productEditFormSchema,
   productFormSchema,
   toCreateProductDTO,
   toUpdateProductDTO,
+  type ProductEditFormData,
   type ProductFormData,
 } from "@/schemas/product.schema";
 
 type ProductFormProps = {
   mode?: "create" | "edit";
   productId?: string;
-  defaultValues?: ProductFormData;
+  defaultValues?: ProductFormData | ProductEditFormData;
 };
 
 export function ProductForm({
@@ -61,8 +64,8 @@ export function ProductForm({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<ProductFormData>({
-    resolver: zodResolver(productFormSchema),
+  } = useForm<ProductFormData | ProductEditFormData>({
+    resolver: zodResolver(isEditMode ? productEditFormSchema : productFormSchema),
     defaultValues: defaultValues ?? {
       jewelry_type: "",
       customer_id: "",
@@ -74,14 +77,14 @@ export function ProductForm({
   const isPaid = watch("payment_status");
   const isPending = isEditMode ? updateProduct.isPending : createProduct.isPending;
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data: ProductFormData | ProductEditFormData) => {
     try {
       if (isEditMode) {
         if (!productId) {
           throw new Error("Venda inválida.");
         }
 
-        await updateProduct.mutateAsync(toUpdateProductDTO(data));
+        await updateProduct.mutateAsync(toUpdateProductDTO(data as ProductEditFormData));
         show("success", "Venda atualizada com sucesso!");
       } else {
         await createProduct.mutateAsync(toCreateProductDTO(data));
@@ -194,6 +197,22 @@ export function ProductForm({
           />
         )}
       />
+
+      {isEditMode ? (
+        <Controller
+          control={control}
+          name="purchase_date"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <DateField
+              label="Data da compra*"
+              error={errors.purchase_date?.message}
+              value={value ?? ""}
+              onChange={onChange}
+              onBlur={onBlur}
+            />
+          )}
+        />
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Pagamento</Text>

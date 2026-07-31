@@ -17,13 +17,21 @@ export const createProductSchema = z.object({
 });
 
 export const updateProductSchema = createProductSchema
+  .extend({
+    created_at: z
+      .string()
+      .refine((value) => !Number.isNaN(Date.parse(value)), {
+        message: "Data da compra inválida.",
+      }),
+  })
   .partial()
   .refine(
     (data) =>
       data.jewelry_type !== undefined ||
       data.customer_id !== undefined ||
       data.value !== undefined ||
-      data.payment_status !== undefined,
+      data.payment_status !== undefined ||
+      data.created_at !== undefined,
     { message: "Informe ao menos um campo para atualizar." }
   );
 
