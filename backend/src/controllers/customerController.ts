@@ -1,11 +1,8 @@
 import { Request, Response } from "express"
 import CustomerService from "../services/CustomerService"
 import { customerErrorHttpStatusMap } from "../errors/customerErrorHttpMapper"
+import { getAccessToken } from "../utils/getAccessToken"
 import { getHttpStatusFromError } from "../utils/getHttpStatusFromError"
-
-function getAccessToken(request: Request): string {
-  return request.accessToken ?? request.headers.authorization!.split(" ")[1]
-}
 
 class CustomerController {
   async create(request: Request, response: Response): Promise<Response> {

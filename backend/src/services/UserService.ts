@@ -1,31 +1,15 @@
+import { supabaseAuth, supabaseAdmin } from "../database/supabase/supabase"
+import { USER_PROFILE_SELECT } from "../constants/user.constants"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { UserErrorCode } from "../types/code/userCode"
-import { supabaseAuth, supabaseAdmin } from "../database/supabase/supabase"
 import { AuthTokens } from "../types/auth/auth.types"
-import jwt from "jsonwebtoken"
 import { UserProfile } from "../types/users/profile"
-import { env } from "../config/env"
+import { RegisterDTO } from "../types/users/register"
+import { getUserIdFromAccessToken } from "../utils/accessToken"
+import { isRefreshTokenReuseOrRevoked } from "../utils/authErrors"
+import { buildAuthTokens } from "../utils/authSession"
+import { mapUserProfileRow } from "../utils/userProfile"
 import { revokeAccessToken, revokeUserSessions } from "../utils/tokenRevocation"
-
-interface RegisterDTO {
-    username: string
-    email: string
-    password: string
-}
-
-function isRefreshTokenReuseOrRevoked(error: { message?: string; code?: string } | null): boolean {
-    if (!error) return false
-
-    const message = (error.message ?? "").toLowerCase()
-    const code = (error.code ?? "").toLowerCase()
-
-    return (
-        code.includes("refresh_token") ||
-        message.includes("already used") ||
-        message.includes("not found") ||
-        message.includes("invalid refresh")
-    )
-}
 
 class UserService {
     async register(data: RegisterDTO): Promise<ServiceResult<{ id: string }, UserErrorCode>> {
@@ -105,19 +89,9 @@ class UserService {
                 }
             }
 
-            const expiresAtSec = data.session.expires_at ?? 0
-
             return {
                 status: true,
-                data: {
-                    accessToken: data.session.access_token,
-                    refreshToken: data.session.refresh_token,
-                    expiresAt: expiresAtSec * 1000,
-                    user: {
-                        id: data.user.id,
-                        email: data.user.email ?? "",
-                    },
-                },
+                data: buildAuthTokens(data.session, data.user),
             }
         } catch (error) {
             console.error("[UserService.login] error:", error)
@@ -131,20 +105,9 @@ class UserService {
         }
     }
 
-
     async logout(accessToken: string): Promise<ServiceResult<null, UserErrorCode>> {
         try {
-            let userId: string | undefined
-
-            try {
-                const payload = jwt.verify(accessToken, env.SUPABASE_JWT_SECRET, {
-                    algorithms: ["HS256"],
-                }) as { sub?: string }
-                userId = payload.sub
-            } catch {
-                const payload = jwt.decode(accessToken) as { sub?: string } | null
-                userId = payload?.sub
-            }
+            const userId = getUserIdFromAccessToken(accessToken)
 
             if (!userId) {
                 return {
@@ -195,20 +158,9 @@ class UserService {
                 }
             }
 
-            const expiresAtSec = data.session.expires_at ?? 0
-
-            // Supabase rotaciona refresh tokens: sempre persistir o par novo no cliente.
             return {
                 status: true,
-                data: {
-                    accessToken: data.session.access_token,
-                    refreshToken: data.session.refresh_token,
-                    expiresAt: expiresAtSec * 1000,
-                    user: {
-                        id: data.user.id,
-                        email: data.user.email ?? "",
-                    },
-                },
+                data: buildAuthTokens(data.session, data.user),
             }
         } catch (error) {
             console.error("[UserService.refresh] error:", error)
@@ -222,11 +174,11 @@ class UserService {
         }
     }
 
-    async getProfile(userId: string ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
+    async getProfile(userId: string): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
             const { data, error } = await supabaseAdmin
                 .from("users")
-                .select("id, username, email, earnings_percent")
+                .select(USER_PROFILE_SELECT)
                 .eq("id", userId)
                 .single()
 
@@ -242,12 +194,7 @@ class UserService {
 
             return {
                 status: true,
-                data: {
-                    id: data.id,
-                    username: data.username,
-                    email: data.email,
-                    earnings_percent: data.earnings_percent ?? 100,
-                },
+                data: mapUserProfileRow(data),
             }
         } catch (error) {
             console.error("[UserService.getProfile] error:", error)
@@ -262,13 +209,16 @@ class UserService {
         }
     }
 
-    async updateProfile(userId: string, updates: { username: string } ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
+    async updateProfile(
+        userId: string,
+        updates: { username: string }
+    ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
             const { data, error } = await supabaseAdmin
                 .from("users")
                 .update({ username: updates.username })
                 .eq("id", userId)
-                .select("id, username, email, earnings_percent")
+                .select(USER_PROFILE_SELECT)
                 .single()
 
             if (error || !data) {
@@ -283,12 +233,7 @@ class UserService {
 
             return {
                 status: true,
-                data: {
-                    id: data.id,
-                    username: data.username,
-                    email: data.email,
-                    earnings_percent: data.earnings_percent ?? 100,
-                },
+                data: mapUserProfileRow(data),
             }
         } catch (error) {
             console.error("[UserService.updateProfile] error:", error)
@@ -312,7 +257,7 @@ class UserService {
                 .from("users")
                 .update({ earnings_percent: earningsPercent })
                 .eq("id", userId)
-                .select("id, username, email, earnings_percent")
+                .select(USER_PROFILE_SELECT)
                 .single()
 
             if (error || !data) {
@@ -327,12 +272,7 @@ class UserService {
 
             return {
                 status: true,
-                data: {
-                    id: data.id,
-                    username: data.username,
-                    email: data.email,
-                    earnings_percent: data.earnings_percent ?? 100,
-                },
+                data: mapUserProfileRow(data),
             }
         } catch (error) {
             console.error("[UserService.updateEarningsPercent] error:", error)

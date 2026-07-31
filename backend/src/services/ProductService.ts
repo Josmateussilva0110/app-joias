@@ -11,178 +11,22 @@ import {
   UpdateProductDTO,
   mapProductRow,
 } from "@app/shared"
+import { PRODUCT_SELECT } from "../constants/product.constants"
 import { createSupabaseClientForUser } from "../database/supabase/supabase"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { ProductErrorCode } from "../types/code/productCode"
 import {
   AnalyticsSourceRow,
   buildProductAnalytics,
-} from "./productAnalytics"
-import { buildProductFilterOptions } from "./productFilterOptions"
-
-const PRODUCT_BASE_SELECT =
-  "id, created_by, customer_id, jewelry_type, value, payment_status, created_at, updated_at"
-
-const PRODUCT_SELECT = `${PRODUCT_BASE_SELECT}, customers(name)`
-
-const MIN_FILTER_YEAR = 2026
-
-type FilterableQuery = {
-  eq: (column: string, value: unknown) => FilterableQuery
-  ilike: (column: string, pattern: string) => FilterableQuery
-  gte: (column: string, value: string) => FilterableQuery
-  lt: (column: string, value: string) => FilterableQuery
-  or: (filters: string) => FilterableQuery
-}
-
-function getAvailableYears(years: number[]) {
-  const currentYear = new Date().getFullYear()
-  const sortedYears = years.filter((year) => year >= MIN_FILTER_YEAR).sort((a, b) => b - a)
-
-  if (sortedYears.length === 0 && currentYear >= MIN_FILTER_YEAR) {
-    return [currentYear]
-  }
-
-  return sortedYears
-}
-
-function getDateRange(filters: Pick<ListProductsQuery, "month" | "year">) {
-  if (!filters.year) return null
-
-  if (filters.month) {
-    const start = new Date(filters.year, filters.month - 1, 1)
-    const end = new Date(filters.year, filters.month, 1)
-    return { start: start.toISOString(), end: end.toISOString() }
-  }
-
-  const start = new Date(filters.year, 0, 1)
-  const end = new Date(filters.year + 1, 0, 1)
-  return { start: start.toISOString(), end: end.toISOString() }
-}
-
-function applyMonthOnlyFilter(query: FilterableQuery, month: number) {
-  const currentYear = new Date().getFullYear()
-  const ranges: string[] = []
-
-  for (let year = MIN_FILTER_YEAR; year <= currentYear; year += 1) {
-    const start = new Date(year, month - 1, 1).toISOString()
-    const end = new Date(year, month, 1).toISOString()
-    ranges.push(`and(created_at.gte.${start},created_at.lt.${end})`)
-  }
-
-  return query.or(ranges.join(","))
-}
-
-function applyListFilters<T>(
-  query: T,
-  filters: Pick<
-    ListProductsQuery,
-    "customer_name" | "jewelry_type" | "payment" | "month" | "year"
-  >
-): T {
-  let next = query as FilterableQuery
-
-  if (filters.jewelry_type) {
-    next = next.ilike("jewelry_type", `%${filters.jewelry_type}%`)
-  }
-
-  if (filters.payment === "paid") {
-    next = next.eq("payment_status", true)
-  } else if (filters.payment === "unpaid") {
-    next = next.eq("payment_status", false)
-  }
-
-  const dateRange = getDateRange(filters)
-  if (dateRange) {
-    next = next
-      .gte("created_at", dateRange.start)
-      .lt("created_at", dateRange.end)
-  } else if (filters.month) {
-    next = applyMonthOnlyFilter(next, filters.month)
-  }
-
-  return next as T
-}
-
-function buildItemsQuery(
-  supabase: ReturnType<typeof createSupabaseClientForUser>,
-  filters: ListProductsQuery
-) {
-  const selectQuery = filters.customer_name
-    ? `${PRODUCT_BASE_SELECT}, customers!inner(name)`
-    : PRODUCT_SELECT
-
-  let query = supabase.from("products").select(selectQuery, { count: "exact" })
-
-  if (filters.customer_name) {
-    query = query.ilike("customers.name", `%${filters.customer_name}%`)
-  }
-
-  query = applyListFilters(query, filters)
-
-  return query.order("created_at", {
-    ascending: false,
-  })
-}
-
-async function fetchFilteredSummaryTotal(
-  supabase: ReturnType<typeof createSupabaseClientForUser>,
-  filters: ListProductsQuery
-) {
-  const { data, error } = filters.customer_name
-    ? await applyListFilters(
-        supabase
-          .from("products")
-          .select("value, customers!inner(name)")
-          .ilike("customers.name", `%${filters.customer_name}%`),
-        filters
-      )
-    : await applyListFilters(
-        supabase.from("products").select("value"),
-        filters
-      )
-
-  if (error) {
-    console.error("[ProductService.list.summary]", error)
-    return 0
-  }
-
-  return (data ?? []).reduce((sum, row) => {
-    const value =
-      typeof row.value === "string" ? Number(row.value) : Number(row.value ?? 0)
-    return sum + (Number.isFinite(value) ? value : 0)
-  }, 0)
-}
-
-async function fetchAvailableYears(
-  supabase: ReturnType<typeof createSupabaseClientForUser>
-) {
-  const { data, error } = await supabase.rpc("get_my_product_years")
-
-  if (error) {
-    console.error("[ProductService.list.years]", error)
-    return getAvailableYears([])
-  }
-
-  const years = (data ?? []).map((row: { year: number }) => row.year)
-  return getAvailableYears(years)
-}
-
-async function fetchAvailableMonths(
-  supabase: ReturnType<typeof createSupabaseClientForUser>,
-  year?: number
-) {
-  const { data, error } = await supabase.rpc("get_my_product_months", {
-    filter_year: year ?? null,
-  })
-
-  if (error) {
-    console.error("[ProductService.filters.months]", error)
-    return []
-  }
-
-  return (data ?? []).map((row: { month: number }) => row.month)
-}
+} from "../utils/productAnalytics"
+import { buildProductFilterOptions } from "../utils/productFilterOptions"
+import { applyListFilters } from "../utils/productQueryFilters"
+import {
+  buildItemsQuery,
+  fetchAvailableMonths,
+  fetchAvailableYears,
+  fetchFilteredSummaryTotal,
+} from "../utils/productQueries"
 
 class ProductService {
   async create(
@@ -347,14 +191,14 @@ class ProductService {
     accessToken: string,
     productId: string,
     data: UpdateProductDTO
-  ): Promise<ServiceResult<ProductResponse, ProductErrorCode>> {
+  ): Promise<ServiceResult<{ id: string }, ProductErrorCode>> {
     const supabase = createSupabaseClientForUser(accessToken)
 
     const { data: row, error } = await supabase
       .from("products")
       .update(data)
       .eq("id", productId)
-      .select(PRODUCT_SELECT)
+      .select("id")
       .maybeSingle()
 
     if (error) {
@@ -380,7 +224,7 @@ class ProductService {
 
     return {
       status: true,
-      data: mapProductRow(row),
+      data: { id: row.id },
     }
   }
 

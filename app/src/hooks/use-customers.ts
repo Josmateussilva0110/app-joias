@@ -94,7 +94,7 @@ export function useCreateCustomer() {
 export function useUpdateCustomer(customerId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<CustomerResponse, QueryError, UpdateCustomerDTO>({
+  return useMutation<{ id: string }, QueryError, UpdateCustomerDTO>({
     mutationFn: async (data) => {
       const res = await updateCustomer(customerId, data);
 
@@ -105,10 +105,10 @@ export function useUpdateCustomer(customerId: string) {
         throw error;
       }
 
-      return res.data as CustomerResponse;
+      return res.data as { id: string };
     },
-    onSuccess(data) {
-      queryClient.setQueryData(customerDetailKey(customerId), data);
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: customerDetailKey(customerId) });
       queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
     },

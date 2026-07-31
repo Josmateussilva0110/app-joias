@@ -25,7 +25,7 @@ export function createCustomer(data: CreateCustomerDTO) {
 }
 
 export function updateCustomer(id: string, data: UpdateCustomerDTO) {
-  return requestData<CustomerResponse>({
+  return requestData<{ id: string }>({
     endpoint: `${CUSTOMER_ROUTES.list}/${id}`,
     method: "PUT",
     data,

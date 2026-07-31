@@ -5,20 +5,13 @@ import {
   mapCustomerRow,
 } from "@app/shared"
 import { createSupabaseClientForUser } from "../database/supabase/supabase"
+import { CUSTOMER_SELECT } from "../constants/customer.constants"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { CustomerErrorCode } from "../types/code/customerCode"
-
-const CUSTOMER_SELECT =
-  "id, created_by, name, phone, birth_date, created_at, updated_at"
-
-type SupabaseError = {
-  code?: string
-  message?: string
-}
-
-function isUniqueViolation(error: SupabaseError | null) {
-  return error?.code === "23505"
-}
+import {
+  isForeignKeyViolation,
+  isUniqueViolation,
+} from "../utils/supabaseErrors"
 
 class CustomerService {
   private async hasPhoneInUse(
@@ -211,7 +204,7 @@ class CustomerService {
     accessToken: string,
     customerId: string,
     data: UpdateCustomerDTO
-  ): Promise<ServiceResult<CustomerResponse, CustomerErrorCode>> {
+  ): Promise<ServiceResult<{ id: string }, CustomerErrorCode>> {
     if (data.phone !== undefined) {
       const phoneCheck = await this.hasPhoneInUse(
         accessToken,
@@ -240,7 +233,7 @@ class CustomerService {
       .from("customers")
       .update(data)
       .eq("id", customerId)
-      .select(CUSTOMER_SELECT)
+      .select("id")
       .maybeSingle()
 
     if (error) {
@@ -277,7 +270,7 @@ class CustomerService {
 
     return {
       status: true,
-      data: mapCustomerRow(row),
+      data: { id: row.id },
     }
   }
 
@@ -313,7 +306,7 @@ class CustomerService {
     if (error) {
       console.error("[CustomerService.delete]", error)
 
-      if (error.code === "23503") {
+      if (isForeignKeyViolation(error)) {
         return {
           status: false,
           error: {

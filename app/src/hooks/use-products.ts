@@ -117,7 +117,7 @@ export function useCreateProduct() {
 export function useUpdateProduct(productId: string) {
   const queryClient = useQueryClient();
 
-  return useMutation<ProductResponse, QueryError, UpdateProductDTO>({
+  return useMutation<{ id: string }, QueryError, UpdateProductDTO>({
     mutationFn: async (data) => {
       const res = await updateProduct(productId, data);
 
@@ -128,10 +128,10 @@ export function useUpdateProduct(productId: string) {
         throw error;
       }
 
-      return res.data as ProductResponse;
+      return res.data as { id: string };
     },
-    onSuccess(data) {
-      queryClient.setQueryData(productDetailKey(productId), data);
+    onSuccess() {
+      queryClient.invalidateQueries({ queryKey: productDetailKey(productId) });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY, PRODUCT_FILTERS_KEY] });
     },

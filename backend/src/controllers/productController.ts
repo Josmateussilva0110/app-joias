@@ -2,11 +2,8 @@ import { Request, Response } from "express"
 import { ListProductsQuery, ProductAnalyticsQuery, ProductFiltersQuery } from "@app/shared"
 import ProductService from "../services/ProductService"
 import { productErrorHttpStatusMap } from "../errors/productErrorHttpMapper"
+import { getAccessToken } from "../utils/getAccessToken"
 import { getHttpStatusFromError } from "../utils/getHttpStatusFromError"
-
-function getAccessToken(request: Request): string {
-  return request.accessToken ?? request.headers.authorization!.split(" ")[1]
-}
 
 class ProductController {
   async create(request: Request, response: Response): Promise<Response> {

@@ -42,7 +42,7 @@ export function createProduct(data: CreateProductDTO) {
 }
 
 export function updateProduct(id: string, data: UpdateProductDTO) {
-  return requestData<ProductResponse>({
+  return requestData<{ id: string }>({
     endpoint: `${PRODUCT_ROUTES.list}/${id}`,
     method: "PUT",
     data,

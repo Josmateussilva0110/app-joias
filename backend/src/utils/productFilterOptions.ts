@@ -2,7 +2,7 @@ import {
   ProductFilterOptions,
 } from "@app/shared"
 
-const MIN_FILTER_YEAR = 2026
+import { getAvailableYears } from "./productYears"
 
 const PAYMENT_OPTIONS: ProductFilterOptions["payments"] = [
   { value: "all", label: "Todos" },
@@ -18,17 +18,6 @@ const MONTH_LABELS = Array.from({ length: 12 }, (_, index) =>
 
 function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1)
-}
-
-function getAvailableYears(years: number[]) {
-  const currentYear = new Date().getFullYear()
-  const sortedYears = years.filter((year) => year >= MIN_FILTER_YEAR).sort((a, b) => b - a)
-
-  if (sortedYears.length === 0 && currentYear >= MIN_FILTER_YEAR) {
-    return [currentYear]
-  }
-
-  return sortedYears
 }
 
 function buildMonthOptions(months: number[]): ProductFilterOptions["months"] {
