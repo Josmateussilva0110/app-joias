@@ -7,6 +7,10 @@ import { asyncStoragePersister, QUERY_CACHE_BUSTER } from "@/lib/query-persister
 import { ToastProvider } from "@/context/toast.context";
 import { AuthProvider } from "@/context/auth.context";
 import { ThemeProvider, useTheme } from "@/context/theme.context";
+import {
+  pushTransition,
+  withBackground,
+} from "@/constants/navigation-transitions";
 
 const PERSIST_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
@@ -14,16 +18,7 @@ function AppNavigator() {
   const { colors } = useTheme();
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: {
-          backgroundColor: colors.background,
-        },
-        animation: "ios_from_right",
-        animationDuration: 250,
-      }}
-    />
+    <Stack screenOptions={withBackground(colors, pushTransition)} />
   );
 }
 

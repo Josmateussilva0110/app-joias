@@ -1,7 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 import { CalendarClock, Gem, UserRound } from "lucide-react-native";
 import { ProductResponse } from "@app/shared";
+import { premiumCardShadow } from "@/constants/elevation";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
+import { StaggeredEntrance } from "@/components/ui/staggered-entrance";
 import {
   formatCurrency,
   formatProductDate,
@@ -36,50 +38,56 @@ function DetailRow({ icon: Icon, label, value, colors }: DetailRowProps) {
 }
 
 export function ProductDetailContent({ product }: ProductDetailContentProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = createStyles(colors);
 
   return (
     <View style={styles.container}>
-      <View style={styles.hero}>
-        <View style={styles.heroIconWrap}>
-          <Gem size={28} color={colors.primary} strokeWidth={1.75} />
+      <StaggeredEntrance variant="header" index={0}>
+        <View style={[styles.hero, premiumCardShadow(colors.primary, isDark)]}>
+          <View style={styles.heroIconWrap}>
+            <Gem size={28} color={colors.primary} strokeWidth={1.75} />
+          </View>
+          <Text style={styles.heroValue}>{formatCurrency(product.value)}</Text>
+          <Text style={styles.heroTitle} numberOfLines={2}>
+            {product.jewelry_type}
+          </Text>
+          <Text style={styles.heroSubtitle} numberOfLines={1}>
+            {product.customer_name}
+          </Text>
         </View>
-        <Text style={styles.heroValue}>{formatCurrency(product.value)}</Text>
-        <Text style={styles.heroTitle} numberOfLines={2}>
-          {product.jewelry_type}
-        </Text>
-        <Text style={styles.heroSubtitle} numberOfLines={1}>
-          {product.customer_name}
-        </Text>
-      </View>
+      </StaggeredEntrance>
 
-      <PaymentStatusBadge isPaid={product.payment_status} />
+      <StaggeredEntrance variant="header" index={1}>
+        <PaymentStatusBadge isPaid={product.payment_status} />
+      </StaggeredEntrance>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Informações</Text>
+      <StaggeredEntrance variant="header" index={2}>
+        <View style={[styles.card, premiumCardShadow(colors.primary, isDark)]}>
+          <Text style={styles.sectionTitle}>Informações</Text>
 
-        <DetailRow
-          icon={UserRound}
-          label="Cliente"
-          value={product.customer_name}
-          colors={colors}
-        />
-        <View style={styles.divider} />
-        <DetailRow
-          icon={Gem}
-          label="Joia"
-          value={product.jewelry_type}
-          colors={colors}
-        />
-        <View style={styles.divider} />
-        <DetailRow
-          icon={CalendarClock}
-          label="Data da venda"
-          value={formatProductDate(product.created_at)}
-          colors={colors}
-        />
-      </View>
+          <DetailRow
+            icon={UserRound}
+            label="Cliente"
+            value={product.customer_name}
+            colors={colors}
+          />
+          <View style={styles.divider} />
+          <DetailRow
+            icon={Gem}
+            label="Joia"
+            value={product.jewelry_type}
+            colors={colors}
+          />
+          <View style={styles.divider} />
+          <DetailRow
+            icon={CalendarClock}
+            label="Data da venda"
+            value={formatProductDate(product.created_at)}
+            colors={colors}
+          />
+        </View>
+      </StaggeredEntrance>
     </View>
   );
 }

@@ -1,8 +1,10 @@
 import { useWindowDimensions, View, StyleSheet, StatusBar } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/context/theme.context";
+import { MOTION } from "@/components/ui/motion";
 
 import { AuthHeader } from "../features/auth/components/auth-header";
 import { LoginForm } from "../features/auth/components/login-form";
@@ -41,7 +43,8 @@ export default function LoginScreen() {
         >
           <AuthHeader subtitle="Entre para gerenciar suas vendas de joias" />
 
-          <View
+          <Animated.View
+            entering={MOTION.cardUp}
             style={[
               styles.card,
               {
@@ -55,7 +58,7 @@ export default function LoginScreen() {
             <LoginForm />
             <BiometricLoginButton />
             <LoginFooter />
-          </View>
+          </Animated.View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     </View>

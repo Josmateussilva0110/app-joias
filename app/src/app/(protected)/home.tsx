@@ -3,28 +3,28 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
   RefreshControl,
-  TouchableOpacity,
-  useWindowDimensions,
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { Plus, Gem } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "@/components/appShell";
 import { HomeHeaderActions } from "@/components/layout/home-header-actions";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
+import { ListSectionHeader } from "@/components/ui/list-section-header";
+import { StaggeredEntrance } from "@/components/ui/staggered-entrance";
 import { ProductListItem } from "@/features/products/components/product-list-item";
 import { ProductsSummary } from "@/features/products/components/products-summary";
 import { ProductsFilters } from "@/features/products/components/products-filters";
-import {
-  toListProductsQuery,
-} from "@/features/products/utils/filter-products";
+import { toListProductsQuery } from "@/features/products/utils/filter-products";
+import { groupProductsByPayment } from "@/features/products/utils/group-products-by-payment";
 import { sortProductsDescending } from "@/features/products/utils/sort-products";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useListLayout } from "@/hooks/use-list-layout";
 import { useProducts } from "@/hooks/use-products";
 import { useProductFiltersState } from "@/hooks/use-product-filters";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
@@ -32,10 +32,10 @@ import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { horizontalPadding, contentMaxWidth, isCompact } = useListLayout();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const styles = createStyles(colors);
+  const styles = createStyles(colors, isCompact);
   const {
     filters,
     setFilters,
@@ -70,7 +70,6 @@ export default function HomeScreen() {
     isFetchingNextPage,
   } = useProducts(queryFilters, Boolean(filters));
 
-  const horizontalPadding = width < 380 ? 16 : 24;
   const firstPage = data?.pages?.[0];
   const products = useMemo(
     () =>
@@ -78,6 +77,14 @@ export default function HomeScreen() {
         data?.pages?.flatMap((page) => page.items ?? []) ?? []
       ),
     [data]
+  );
+  const productSections = useMemo(
+    () => groupProductsByPayment(products),
+    [products]
+  );
+  const unpaidCount = useMemo(
+    () => products.filter((product) => !product.payment_status).length,
+    [products]
   );
   const summary = firstPage?.summary ?? { count: 0, total: 0 };
   const hasAnyProduct = firstPage?.has_any ?? false;
@@ -152,15 +159,22 @@ export default function HomeScreen() {
 
   return (
     <AppShell title="Vendas" subtitle={APP_NAME} rightElement={<HomeHeaderActions />}>
-      <View style={styles.container}>
-        <FlatList
-          data={products}
+      <View style={[styles.container, contentMaxWidth != null && styles.containerCentered]}>
+        <View style={[styles.listWrap, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>
+        <SectionList
+          sections={productSections}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ProductListItem
-              product={item}
-              onPress={() => handlePressProduct(item.id)}
-            />
+          renderSectionHeader={({ section: { title, isPaid, data } }) => (
+            <ListSectionHeader title={title} isPaid={isPaid} count={data.length} />
+          )}
+          renderItem={({ item, index, section }) => (
+            <StaggeredEntrance index={index}>
+              <ProductListItem
+                product={item}
+                onPress={() => handlePressProduct(item.id)}
+                isLast={index === section.data.length - 1}
+              />
+            </StaggeredEntrance>
           )}
           contentContainerStyle={[
             styles.listContent,
@@ -170,9 +184,9 @@ export default function HomeScreen() {
             },
             !hasAnyProduct && styles.listContentEmpty,
           ]}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.35}
+          stickySectionHeadersEnabled={false}
           refreshControl={
             <RefreshControl
               refreshing={isRefetching}
@@ -184,12 +198,16 @@ export default function HomeScreen() {
           ListHeaderComponent={
             hasAnyProduct ? (
               <View style={styles.header}>
-                <ProductsSummary summary={summary} />
-                <ProductsFilters
-                  filters={filters}
-                  filterOptions={filterOptions}
-                  onChange={setFilters}
-                />
+                <StaggeredEntrance variant="header" index={0}>
+                  <ProductsSummary summary={summary} unpaidCount={unpaidCount} />
+                </StaggeredEntrance>
+                <StaggeredEntrance variant="header" index={1}>
+                  <ProductsFilters
+                    filters={filters}
+                    filterOptions={filterOptions}
+                    onChange={setFilters}
+                  />
+                </StaggeredEntrance>
               </View>
             ) : null
           }
@@ -223,43 +241,39 @@ export default function HomeScreen() {
           }
         />
 
-        <TouchableOpacity
+        <FloatingActionButton
+          bottom={24 + insets.bottom}
           onPress={() => router.push("/(protected)/products/new")}
-          activeOpacity={0.9}
-          style={[styles.fab, { bottom: 24 + insets.bottom }]}
-        >
-          <LinearGradient
-            colors={[colors.fabGradientStart, colors.fabGradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.fabGradient}
-          >
-            <Plus size={28} color={colors.onPrimary} strokeWidth={2.5} />
-          </LinearGradient>
-        </TouchableOpacity>
+          icon={<Plus size={28} color={colors.onPrimary} strokeWidth={2.5} />}
+        />
+        </View>
       </View>
     </AppShell>
   );
 }
 
-const createStyles = (colors: ThemeColors) =>
+const createStyles = (colors: ThemeColors, isCompact: boolean) =>
   StyleSheet.create({
     container: {
       flex: 1,
     },
+    containerCentered: {
+      alignItems: "center",
+    },
+    listWrap: {
+      flex: 1,
+      width: "100%",
+    },
     listContent: {
-      paddingTop: 16,
+      paddingTop: isCompact ? 10 : 12,
     },
     listContentEmpty: {
       flexGrow: 1,
       justifyContent: "center",
     },
     header: {
-      gap: 12,
-      marginBottom: 16,
-    },
-    separator: {
-      height: 12,
+      gap: isCompact ? 8 : 10,
+      marginBottom: 2,
     },
     footerLoader: {
       alignItems: "center",
@@ -301,21 +315,5 @@ const createStyles = (colors: ThemeColors) =>
       lineHeight: 20,
       color: colors.emptyDescription,
       textAlign: "center",
-    },
-    fab: {
-      position: "absolute",
-      right: 24,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      elevation: 6,
-    },
-    fabGradient: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      alignItems: "center",
-      justifyContent: "center",
     },
   });

@@ -1,7 +1,8 @@
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import { BarChart3, Settings, Users } from "lucide-react-native";
 import { useTheme } from "@/context/theme.context";
+import { AnimatedPressable } from "@/components/ui/animated-pressable";
 
 export function HomeHeaderActions() {
   const router = useRouter();
@@ -9,32 +10,29 @@ export function HomeHeaderActions() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => router.push("/(protected)/analytics" as Href)}
-        activeOpacity={0.7}
         style={[styles.button, { backgroundColor: colors.backgroundElement }]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <BarChart3 size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
+      </AnimatedPressable>
 
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => router.push("/(protected)/customers")}
-        activeOpacity={0.7}
         style={[styles.button, { backgroundColor: colors.backgroundElement }]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Users size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
+      </AnimatedPressable>
 
-      <TouchableOpacity
+      <AnimatedPressable
         onPress={() => router.push("/(protected)/profile")}
-        activeOpacity={0.7}
         style={[styles.button, { backgroundColor: colors.backgroundElement }]}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <Settings size={18} color={colors.textSecondary} />
-      </TouchableOpacity>
+      </AnimatedPressable>
     </View>
   );
 }

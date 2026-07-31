@@ -1,8 +1,10 @@
 import { View, StyleSheet, useWindowDimensions, StatusBar } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/context/theme.context";
+import { MOTION } from "@/components/ui/motion";
 
 import { AuthHeader } from "../features/auth/components/auth-header";
 import { RegisterForm } from "../features/auth/components/register-form";
@@ -40,7 +42,8 @@ export default function RegisterScreen() {
         >
           <AuthHeader subtitle="Crie sua conta e comece a registrar vendas" />
 
-          <View
+          <Animated.View
+            entering={MOTION.cardUp}
             style={[
               styles.card,
               {
@@ -53,7 +56,7 @@ export default function RegisterScreen() {
           >
             <RegisterForm />
             <RegisterFooter />
-          </View>
+          </Animated.View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     </View>

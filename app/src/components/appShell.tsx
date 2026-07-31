@@ -6,14 +6,16 @@ import {
   StyleSheet,
   StatusBar,
   Platform,
-  TouchableOpacity,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Settings, ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/context/theme.context";
+import { AnimatedPressable } from "@/components/ui/animated-pressable";
+import { MOTION } from "@/components/ui/motion";
 
 type AppShellProps = {
   title: string;
@@ -38,14 +40,13 @@ export function AppShell({
   const defaultActions =
     showSettings ? (
       <View style={styles.headerActions}>
-        <TouchableOpacity
+        <AnimatedPressable
           onPress={() => router.push("/(protected)/profile")}
-          activeOpacity={0.7}
           style={[styles.settingsButton, { backgroundColor: theme.backgroundElement }]}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Settings size={18} color={theme.textSecondary} />
-        </TouchableOpacity>
+        </AnimatedPressable>
       </View>
     ) : null;
 
@@ -62,23 +63,22 @@ export function AppShell({
         colors={[theme.headerGradientStart, theme.headerGradientEnd]}
         style={styles.header}
       >
-        <View style={styles.headerContent}>
+        <Animated.View entering={MOTION.header} style={styles.headerContent}>
           <View style={styles.headerLeftRow}>
             {showBack ? (
-              <TouchableOpacity
+              <AnimatedPressable
                 onPress={() => router.back()}
-                activeOpacity={0.75}
                 style={[styles.backButton, { backgroundColor: theme.backgroundElement }]}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <ArrowLeft size={18} color={theme.text} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             ) : null}
 
             <View style={styles.headerLeft}>
               <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
               {subtitle ? (
-                <Text style={[styles.subtitle, { color: theme.textSecondary }]}> 
+                <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                   {subtitle}
                 </Text>
               ) : null}
@@ -88,12 +88,14 @@ export function AppShell({
           {headerRight ? (
             <View style={styles.headerRight}>{headerRight}</View>
           ) : null}
-        </View>
+        </Animated.View>
 
         <View style={[styles.headerBorder, { backgroundColor: theme.headerBorder }]} />
       </LinearGradient>
 
-      <View style={styles.content}>{children}</View>
+      <Animated.View entering={MOTION.screen} style={styles.content}>
+        {children}
+      </Animated.View>
     </SafeAreaView>
   );
 }

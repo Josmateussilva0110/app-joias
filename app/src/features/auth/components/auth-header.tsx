@@ -1,7 +1,10 @@
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Animated from "react-native-reanimated";
 import { Gem } from "lucide-react-native";
+import { premiumCardShadow } from "@/constants/elevation";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
+import { MOTION } from "@/components/ui/motion";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 
 type Props = {
@@ -9,23 +12,30 @@ type Props = {
 };
 
 export function AuthHeader({ subtitle }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = createStyles(colors);
 
   return (
     <View style={styles.header}>
-      <LinearGradient
-        colors={[colors.primary, "#9A7840"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconWrap}
-      >
-        <Gem size={28} color={colors.onPrimary} strokeWidth={1.75} />
-      </LinearGradient>
+      <Animated.View entering={MOTION.listHeader(0)}>
+        <LinearGradient
+          colors={[colors.primary, "#9A7840"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.iconWrap, premiumCardShadow(colors.primary, isDark)]}
+        >
+          <Gem size={28} color={colors.onPrimary} strokeWidth={1.75} />
+        </LinearGradient>
+      </Animated.View>
 
-      <Text style={styles.eyebrow}>JOALHERIA</Text>
-      <Text style={styles.title}>{APP_NAME}</Text>
-      <Text style={styles.subtitle}>{subtitle}</Text>
+      <Animated.View entering={MOTION.listHeader(1)}>
+        <Text style={styles.eyebrow}>JOALHERIA</Text>
+        <Text style={styles.title}>{APP_NAME}</Text>
+      </Animated.View>
+
+      <Animated.View entering={MOTION.listHeader(2)}>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </Animated.View>
     </View>
   );
 }
@@ -42,11 +52,6 @@ const createStyles = (colors: ThemeColors) =>
       borderRadius: 22,
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: colors.primary,
-      shadowOpacity: 0.4,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 8,
     },
     eyebrow: {
       marginTop: 18,

@@ -1,14 +1,16 @@
-import { useEffect, useRef } from "react";
-import {
-  Animated,
+import { StyleSheet, Text, View } from "react-native";
+import Animated, {
   Easing,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { Loader2 } from "lucide-react-native";
+import { useEffect } from "react";
 
 import { useTheme } from "@/context/theme.context";
+import { MOTION } from "@/components/ui/motion";
 
 type LoadingStateProps = {
   message?: string;
@@ -20,32 +22,25 @@ type SpinningLoaderProps = {
 };
 
 function SpinningLoader({ color, size = 32 }: SpinningLoaderProps) {
-  const spin = useRef(new Animated.Value(0)).current;
+  const rotation = useSharedValue(0);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.timing(spin, {
-        toValue: 1,
+    rotation.value = withRepeat(
+      withTiming(360, {
         duration: 900,
         easing: Easing.linear,
-        useNativeDriver: true,
-      })
+      }),
+      -1,
+      false
     );
+  }, [rotation]);
 
-    animation.start();
-
-    return () => {
-      animation.stop();
-    };
-  }, [spin]);
-
-  const rotate = spin.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
 
   return (
-    <Animated.View style={{ transform: [{ rotate }] }}>
+    <Animated.View style={animatedStyle}>
       <Loader2 size={size} color={color} strokeWidth={2.5} />
     </Animated.View>
   );
@@ -57,12 +52,12 @@ export function LoadingState({
   const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <Animated.View entering={MOTION.screen} style={styles.container}>
       <SpinningLoader color={colors.primary} />
       <Text style={[styles.message, { color: colors.textSecondary }]}>
         {message}
       </Text>
-    </View>
+    </Animated.View>
   );
 }
 
