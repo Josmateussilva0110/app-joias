@@ -25,4 +25,4 @@ export const WELCOME_FEATURES: WelcomeFeature[] = [
   },
 ];
 
-export const APP_NAME = "Loja Joias";
+export const APP_NAME = "Sintonia";

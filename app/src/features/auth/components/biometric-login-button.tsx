@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { TouchableOpacity, Text, StyleSheet } from "react-native";
 import { Fingerprint } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
   getBiometricLabel,
-  isBiometricHardwareAvailable,
-  isBiometricLoginEnabled,
+  isBiometricLoginReady,
 } from "@/storage/biometric.storage";
 
 export function BiometricLoginButton() {
@@ -24,19 +23,24 @@ export function BiometricLoginButton() {
   const [biometricLabel, setBiometricLabel] = useState("digital");
 
   const loadState = useCallback(async () => {
-    const [available, enabled, label] = await Promise.all([
-      isBiometricHardwareAvailable(),
-      isBiometricLoginEnabled(),
+    const [ready, label] = await Promise.all([
+      isBiometricLoginReady(),
       getBiometricLabel(),
     ]);
 
-    setIsVisible(available && enabled);
+    setIsVisible(ready);
     setBiometricLabel(label);
   }, []);
 
   useEffect(() => {
     void loadState();
   }, [loadState]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadState();
+    }, [loadState])
+  );
 
   const handlePress = async () => {
     if (isSubmitting) {
@@ -50,6 +54,7 @@ export function BiometricLoginButton() {
 
       if (!result.success) {
         show("error", result.message);
+        await loadState();
         return;
       }
 

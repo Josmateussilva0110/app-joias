@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearLocalSession = useCallback(async () => {
     tokenManager.clearTokens();
     await removeAuth();
-    await clearBiometricLogin();
     await clearPersistedQueryCache();
     setUser(null);
     setSigned(false);

@@ -30,6 +30,15 @@ export async function isBiometricLoginEnabled() {
   return value === "true";
 }
 
+export async function isBiometricLoginReady() {
+  const [available, enabled] = await Promise.all([
+    isBiometricHardwareAvailable(),
+    isBiometricLoginEnabled(),
+  ]);
+
+  return available && enabled;
+}
+
 export async function saveBiometricCredentials(
   email: string,
   refreshToken: string

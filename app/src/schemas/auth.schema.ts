@@ -2,12 +2,16 @@ import { z } from "zod";
 
 const USERNAME_PATTERN = /^[a-zA-ZÀ-ÿ0-9._ -]+$/;
 
-const usernameField = z
+export const usernameField = z
   .string()
   .trim()
-  .min(3, "O nome deve ter no mínimo 3 caracteres")
-  .max(50, "O nome deve ter no máximo 50 caracteres")
-  .regex(USERNAME_PATTERN, "O nome contém caracteres inválidos");
+  .min(3, "O nome deve ter no mínimo 3 caracteres.")
+  .max(50, "O nome deve ter no máximo 50 caracteres.")
+  .regex(USERNAME_PATTERN, "O nome contém caracteres inválidos.");
+
+export const updateProfileSchema = z.object({
+  username: usernameField,
+});
 
 const passwordComplexity = z
   .string()

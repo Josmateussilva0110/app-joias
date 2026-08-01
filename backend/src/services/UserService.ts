@@ -176,14 +176,28 @@ class UserService {
 
     async getProfile(accessToken: string): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
+            const userId = getUserIdFromAccessToken(accessToken)
+
+            if (!userId) {
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_FETCH_FAILED,
+                        message: "Sessão inválida.",
+                    },
+                }
+            }
+
             const supabase = createSupabaseClientForUser(accessToken)
 
             const { data, error } = await supabase
                 .from("users")
                 .select(USER_PROFILE_SELECT)
+                .eq("id", userId)
                 .single()
 
             if (error || !data) {
+                console.error("[UserService.getProfile]", error)
                 return {
                     status: false,
                     error: {
@@ -215,15 +229,29 @@ class UserService {
         updates: { username: string }
     ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
+            const userId = getUserIdFromAccessToken(accessToken)
+
+            if (!userId) {
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_UPDATE_FAILED,
+                        message: "Sessão inválida.",
+                    },
+                }
+            }
+
             const supabase = createSupabaseClientForUser(accessToken)
 
             const { data, error } = await supabase
                 .from("users")
                 .update({ username: updates.username })
+                .eq("id", userId)
                 .select(USER_PROFILE_SELECT)
                 .single()
 
             if (error || !data) {
+                console.error("[UserService.updateProfile]", error)
                 return {
                     status: false,
                     error: {

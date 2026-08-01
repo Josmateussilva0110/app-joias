@@ -11,6 +11,7 @@ import { User as UserIcon, Save, RefreshCw } from "lucide-react-native";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { useToast } from "@/context/toast.context";
 import { useProfile, useUpdateProfile } from "@/hooks/use-profile";
+import { updateProfileSchema } from "@/schemas/auth.schema";
 
 export function ProfileUserCard() {
   const { colors } = useTheme();
@@ -30,24 +31,32 @@ export function ProfileUserCard() {
   }, [profile]);
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      show("error", "Informe um nome.");
+    const parsed = updateProfileSchema.safeParse({ username: name });
+
+    if (!parsed.success) {
+      show("error", parsed.error.issues[0]?.message ?? "Nome inválido.");
       return;
     }
 
-    if (name.trim() === profile?.username) {
+    const nextUsername = parsed.data.username;
+
+    if (nextUsername === profile?.username) {
       show("info", "Nenhuma alteração detectada.");
       return;
     }
 
     try {
       await updateProfile.mutateAsync({
-        username: name.trim(),
+        username: nextUsername,
       });
 
       show("success", "Perfil atualizado com sucesso!");
-    } catch (error: any) {
-      show("error", error.message || "Não foi possível atualizar o perfil.");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o perfil.";
+      show("error", message);
     }
   };
 
