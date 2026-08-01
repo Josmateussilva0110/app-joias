@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -51,7 +52,7 @@ export function useCustomers(filters?: CustomersListFilters) {
         limit: CUSTOMERS_PAGE_SIZE,
       });
 
-      if (!res.success || !res.data?.items) {
+      if (!res.success || !Array.isArray(res.data?.items)) {
         const error = new Error(
           res.message || "Não foi possível carregar os clientes."
         ) as QueryError;
@@ -64,6 +65,7 @@ export function useCustomers(filters?: CustomersListFilters) {
     },
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? lastPage.page + 1 : undefined,
+    placeholderData: keepPreviousData,
     staleTime: 60 * 1000,
   });
 }

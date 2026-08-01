@@ -1,7 +1,7 @@
 import type { TextStyle } from "react-native";
 
 import type { ThemeColors } from "@/context/theme.context";
-import { FontFamily } from "@/constants/typography";
+import { FontFamily } from "@/constants/font-family";
 
 export function getAnalyticsChartColors(colors: ThemeColors) {
   return {

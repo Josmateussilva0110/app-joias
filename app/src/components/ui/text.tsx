@@ -4,7 +4,7 @@ import {
   StyleSheet,
   type TextProps,
 } from "react-native-original";
-import { fontFamilyForWeight } from "@/constants/typography";
+import { fontFamilyForWeight } from "@/constants/font-family";
 
 export const AppText = React.forwardRef<RNText, TextProps>(function AppText(
   { style, ...props },

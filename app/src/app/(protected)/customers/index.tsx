@@ -78,6 +78,7 @@ export default function CustomersScreen() {
   );
   const hasCustomers = totalCount > 0;
   const isSearching = searchName.trim().length > 0;
+  const showSearch = hasCustomers || isSearching;
   const isInitialLoading = isLoading && !data;
 
   const handleEndReached = useCallback(() => {
@@ -112,7 +113,7 @@ export default function CustomersScreen() {
     );
   }
 
-  if (isError) {
+  if (isError && !data) {
     return (
       <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
         <ErrorState
@@ -166,10 +167,23 @@ export default function CustomersScreen() {
                 <StaggeredEntrance variant="header" index={0} enabled={animateItems}>
                   <CustomersSummary count={totalCount} />
                 </StaggeredEntrance>
-                {hasCustomers ? (
+                {showSearch ? (
                   <StaggeredEntrance variant="header" index={1} enabled={animateItems}>
                     <CustomersSearch value={searchName} onChange={setSearchName} />
                   </StaggeredEntrance>
+                ) : null}
+                {isError ? (
+                  <View style={styles.searchError}>
+                    <Text style={[styles.searchErrorText, { color: colors.error }]}>
+                      {error?.message ?? "Não foi possível buscar os clientes."}
+                    </Text>
+                    <Text
+                      onPress={() => refetch()}
+                      style={[styles.searchErrorRetry, { color: colors.primary }]}
+                    >
+                      Tentar novamente
+                    </Text>
+                  </View>
                 ) : null}
               </View>
             }
@@ -215,6 +229,20 @@ const createStyles = (isCompact: boolean) =>
       paddingTop: isCompact ? 10 : 12,
       paddingBottom: 8,
       gap: isCompact ? 8 : 10,
+    },
+    searchError: {
+      gap: 4,
+      paddingVertical: 4,
+    },
+    searchErrorText: {
+      fontSize: 13,
+      fontWeight: "600",
+      textAlign: "center",
+    },
+    searchErrorRetry: {
+      fontSize: 13,
+      fontWeight: "600",
+      textAlign: "center",
     },
     headerActions: {
       flexDirection: "row",

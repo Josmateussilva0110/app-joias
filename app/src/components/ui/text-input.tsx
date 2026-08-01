@@ -4,7 +4,7 @@ import {
   StyleSheet,
   type TextInputProps,
 } from "react-native-original";
-import { fontFamilyForWeight } from "@/constants/typography";
+import { fontFamilyForWeight } from "@/constants/font-family";
 
 export const AppTextInput = React.forwardRef<RNTextInput, TextInputProps>(
   function AppTextInput({ style, ...props }, ref) {
