@@ -51,7 +51,7 @@ export const customerResponseSchema = z.object({
 
 export const CUSTOMERS_PAGE_SIZE = 30;
 export const CUSTOMERS_MAX_PAGE_SIZE = 100;
-export const CUSTOMERS_PICKER_LIMIT = 200;
+export const CUSTOMERS_PICKER_LIMIT = CUSTOMERS_MAX_PAGE_SIZE;
 
 export const listCustomersQuerySchema = z.object({
   name: z.preprocess(

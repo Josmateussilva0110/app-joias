@@ -43,7 +43,8 @@ export function SearchBar({
 const createStyles = (colors: ThemeColors, isCompact: boolean) =>
   StyleSheet.create({
     wrap: {
-      flex: 1,
+      alignSelf: "stretch",
+      width: "100%",
       minWidth: 0,
       height: isCompact ? 36 : 38,
       borderRadius: 10,

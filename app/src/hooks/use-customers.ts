@@ -21,6 +21,7 @@ import {
   updateCustomer,
 } from "@/services/customer.service";
 import { PRODUCTS_KEY } from "@/hooks/use-products";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAuth } from "./useAuth";
 
 export const CUSTOMERS_KEY = "customers";
@@ -80,16 +81,51 @@ export function useCustomerPicker() {
     queryFn: async () => {
       const res = await listCustomers({ page: 1, limit: CUSTOMERS_PICKER_LIMIT });
 
-      if (!res.success) {
-        const error = new Error(res.message) as QueryError;
+      if (!res.success || !Array.isArray(res.data?.items)) {
+        const error = new Error(
+          res.message || "Não foi possível carregar os clientes."
+        ) as QueryError;
         error.status = res.error?.status;
         error.reason = res.error?.reason;
         throw error;
       }
 
-      return res.data?.items ?? [];
+      return res.data.items;
     },
     staleTime: 60 * 1000,
+  });
+}
+
+/** Busca clientes no servidor para o modal de seleção na venda. */
+export function useCustomerPickerSearch(searchName: string, enabled: boolean) {
+  const { signed, loading } = useAuth();
+  const debouncedSearch = useDebouncedValue(searchName, 400);
+  const trimmedSearch = debouncedSearch.trim();
+  const nameFilter = trimmedSearch.length > 0 ? trimmedSearch : undefined;
+
+  return useQuery<CustomerListResult, QueryError>({
+    queryKey: [CUSTOMERS_KEY, "picker-search", nameFilter],
+    enabled: signed && !loading && enabled,
+    queryFn: async () => {
+      const res = await listCustomers({
+        page: 1,
+        limit: CUSTOMERS_PICKER_LIMIT,
+        ...(nameFilter ? { name: nameFilter } : {}),
+      });
+
+      if (!res.success || !Array.isArray(res.data?.items)) {
+        const error = new Error(
+          res.message || "Não foi possível buscar os clientes."
+        ) as QueryError;
+        error.status = res.error?.status;
+        error.reason = res.error?.reason;
+        throw error;
+      }
+
+      return res.data;
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 30 * 1000,
   });
 }
 

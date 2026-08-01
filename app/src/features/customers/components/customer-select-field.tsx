@@ -7,12 +7,15 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { ChevronDown, Check, User } from "lucide-react-native";
 import { CustomerResponse } from "@app/shared";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { CustomersSearch } from "@/features/customers/components/customers-search";
-import { buildCustomerSelectOptions } from "@/features/customers/utils/customer-select-options";
+import { useCustomerPickerSearch } from "@/hooks/use-customers";
 
 type CustomerSelectFieldProps = {
   customers: CustomerResponse[];
@@ -34,15 +37,43 @@ export function CustomerSelectField({
   const [open, setOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
 
-  const selectedCustomer = customers.find((customer) => customer.id === value);
+  const {
+    data: searchResult,
+    isLoading,
+    isFetching,
+    isError,
+    error: searchError,
+    refetch,
+  } = useCustomerPickerSearch(searchName, open);
 
-  const { options, totalCount, isSearching, limit } = useMemo(
-    () => buildCustomerSelectOptions(customers, searchName, value),
-    [customers, searchName, value]
-  );
+  const selectedCustomer =
+    customers.find((customer) => customer.id === value) ??
+    searchResult?.items.find((customer) => customer.id === value);
+
+  const isSearching = searchName.trim().length > 0;
+
+  const options = useMemo(() => {
+    const items = searchResult?.items ?? [];
+    let mapped = items.map((customer) => ({
+      value: customer.id,
+      label: customer.name,
+    }));
+
+    if (value && !mapped.some((option) => option.value === value) && selectedCustomer) {
+      mapped = [
+        { value: selectedCustomer.id, label: selectedCustomer.name },
+        ...mapped,
+      ];
+    }
+
+    return mapped;
+  }, [searchResult?.items, selectedCustomer, value]);
+
+  const totalCount = searchResult?.total ?? options.length;
+  const showLimitHint =
+    !isSearching && !isLoading && (searchResult?.has_more ?? totalCount > options.length);
 
   const selectedLabel = selectedCustomer?.name ?? placeholder;
-  const showLimitHint = !isSearching && totalCount > limit;
 
   function handleClose() {
     setOpen(false);
@@ -83,62 +114,89 @@ export function CustomerSelectField({
         animationType="fade"
         onRequestClose={handleClose}
       >
-        <Pressable style={styles.backdrop} onPress={handleClose}>
-          <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
-            <Text style={styles.sheetTitle}>Selecionar cliente</Text>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+          <Pressable style={styles.backdropPressable} onPress={handleClose}>
+            <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
+              <Text style={styles.sheetTitle}>Selecionar cliente</Text>
 
-            <View style={styles.searchWrap}>
-              <CustomersSearch value={searchName} onChange={setSearchName} />
-            </View>
+              <View style={styles.searchWrap}>
+                <CustomersSearch value={searchName} onChange={setSearchName} />
+              </View>
 
-            {showLimitHint ? (
-              <Text style={styles.hint}>
-                Mostrando {options.length} de {totalCount} clientes. Busque por
-                nome para ver mais.
-              </Text>
-            ) : null}
+              {isFetching && !isLoading ? (
+                <View style={styles.searchStatus}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : null}
 
-            <ScrollView
-              style={styles.optionsList}
-              bounces={false}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              {options.length === 0 ? (
-                <View style={styles.emptyState}>
-                  <Text style={styles.emptyTitle}>Nenhum cliente encontrado</Text>
-                  <Text style={styles.emptyDescription}>
-                    Tente buscar por outro nome.
+              {isError ? (
+                <View style={styles.searchError}>
+                  <Text style={styles.searchErrorText}>
+                    {searchError?.message ?? "Não foi possível buscar os clientes."}
+                  </Text>
+                  <Text onPress={() => refetch()} style={styles.searchErrorRetry}>
+                    Tentar novamente
                   </Text>
                 </View>
-              ) : (
-                options.map((option) => {
-                  const isSelected = option.value === value;
+              ) : null}
 
-                  return (
-                    <TouchableOpacity
-                      key={option.value}
-                      onPress={() => handleSelect(option.value)}
-                      activeOpacity={0.7}
-                      style={[styles.option, isSelected && styles.optionSelected]}
-                    >
-                      <Text
-                        style={[
-                          styles.optionText,
-                          isSelected && styles.optionTextSelected,
-                        ]}
+              {showLimitHint ? (
+                <Text style={styles.hint}>
+                  Mostrando {options.length} de {totalCount} clientes. Busque por nome
+                  para refinar.
+                </Text>
+              ) : null}
+
+              <ScrollView
+                style={styles.optionsList}
+                bounces={false}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {isLoading ? (
+                  <View style={styles.emptyState}>
+                    <ActivityIndicator color={colors.primary} />
+                    <Text style={styles.emptyDescription}>Carregando clientes...</Text>
+                  </View>
+                ) : options.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyTitle}>Nenhum cliente encontrado</Text>
+                    <Text style={styles.emptyDescription}>
+                      Tente buscar por outro nome.
+                    </Text>
+                  </View>
+                ) : (
+                  options.map((option) => {
+                    const isSelected = option.value === value;
+
+                    return (
+                      <TouchableOpacity
+                        key={option.value}
+                        onPress={() => handleSelect(option.value)}
+                        activeOpacity={0.7}
+                        style={[styles.option, isSelected && styles.optionSelected]}
                       >
-                        {option.label}
-                      </Text>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            isSelected && styles.optionTextSelected,
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
 
-                      {isSelected ? <Check size={18} color={colors.primary} /> : null}
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </ScrollView>
+                        {isSelected ? <Check size={18} color={colors.primary} /> : null}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+              </ScrollView>
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -187,6 +245,9 @@ const createStyles = (colors: ThemeColors) =>
     },
     backdrop: {
       flex: 1,
+    },
+    backdropPressable: {
+      flex: 1,
       justifyContent: "flex-end",
       backgroundColor: "rgba(0, 0, 0, 0.45)",
     },
@@ -208,6 +269,27 @@ const createStyles = (colors: ThemeColors) =>
     searchWrap: {
       paddingHorizontal: 16,
       marginBottom: 8,
+    },
+    searchStatus: {
+      alignItems: "center",
+      paddingBottom: 8,
+    },
+    searchError: {
+      gap: 4,
+      paddingHorizontal: 24,
+      paddingBottom: 8,
+    },
+    searchErrorText: {
+      fontSize: 13,
+      fontWeight: "600",
+      textAlign: "center",
+      color: colors.error,
+    },
+    searchErrorRetry: {
+      fontSize: 13,
+      fontWeight: "600",
+      textAlign: "center",
+      color: colors.primary,
     },
     hint: {
       paddingHorizontal: 24,

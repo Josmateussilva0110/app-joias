@@ -33,11 +33,13 @@ export function ProductsFilters({
     <View style={styles.container}>
       <View style={[styles.searchRow, isTablet && styles.searchRowTablet]}>
         <SearchBar
+          style={isTablet ? styles.searchField : undefined}
           value={filters.customerName}
           onChange={(customerName) => onChange({ ...filters, customerName })}
           placeholder="Buscar cliente"
         />
         <SearchBar
+          style={isTablet ? styles.searchField : undefined}
           value={filters.jewelryName}
           onChange={(jewelryName) => onChange({ ...filters, jewelryName })}
           placeholder="Buscar joia"
@@ -94,5 +96,8 @@ const styles = StyleSheet.create({
   },
   searchRowTablet: {
     flexDirection: "row",
+  },
+  searchField: {
+    flex: 1,
   },
 });
