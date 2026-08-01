@@ -1,11 +1,11 @@
 {
   "expo": {
     "name": "Loja Joias",
-    "slug": "app",
-    "version": "1.0.9",
+    "slug": "loja-joias",
+    "version": "1.0.11",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "financeiroapp",
+    "scheme": "lojajoias",
     "userInterfaceStyle": "automatic",
     "android": {
       "usesCleartextTraffic": false,
@@ -16,7 +16,10 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mateus0110.financeiroapp"
+      "package": "com.mateus0110.lojajoias"
+    },
+    "ios": {
+      "bundleIdentifier": "com.mateus0110.lojajoias"
     },
     "web": {
       "output": "static",
