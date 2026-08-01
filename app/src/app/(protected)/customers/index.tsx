@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import {
   View,
   StyleSheet,
   SectionList,
   RefreshControl,
+  ActivityIndicator,
+  Text,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Settings } from "lucide-react-native";
@@ -20,9 +22,9 @@ import { CustomerListItem } from "@/features/customers/components/customer-list-
 import { CustomersEmptyState } from "@/features/customers/components/customers-empty-state";
 import { CustomersSearch } from "@/features/customers/components/customers-search";
 import { CustomersSummary } from "@/features/customers/components/customers-summary";
-import { filterCustomersByName } from "@/features/customers/utils/filter-customers";
 import { groupCustomersByLetter } from "@/features/customers/utils/group-customers-by-letter";
 import { useCustomers } from "@/hooks/use-customers";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useListLayout } from "@/hooks/use-list-layout";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
@@ -32,23 +34,57 @@ export default function CustomersScreen() {
   const { horizontalPadding, contentMaxWidth, isCompact } = useListLayout();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const styles = createStyles(isCompact);
+  const styles = useMemo(() => createStyles(isCompact), [isCompact]);
   const [searchName, setSearchName] = useState("");
+  const [animateItems, setAnimateItems] = useState(true);
+  const debouncedSearch = useDebouncedValue(searchName, 400);
 
-  const { data: customers, isLoading, isError, error, refetch, isRefetching } =
-    useCustomers();
-
-  const allCustomers = customers ?? [];
-  const list = useMemo(
-    () => filterCustomersByName(allCustomers, searchName),
-    [allCustomers, searchName]
+  const listFilters = useMemo(
+    () => (debouncedSearch.trim() ? { name: debouncedSearch.trim() } : undefined),
+    [debouncedSearch]
   );
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useCustomers(listFilters);
+
+  useEffect(() => {
+    if (!animateItems) return;
+    const timer = setTimeout(() => setAnimateItems(false), 1200);
+    return () => clearTimeout(timer);
+  }, [animateItems]);
+
+  useEffect(() => {
+    setAnimateItems(true);
+  }, [listFilters]);
+
+  const firstPage = data?.pages?.[0];
+  const allCustomers = useMemo(
+    () => data?.pages?.flatMap((page) => page.items ?? []) ?? [],
+    [data]
+  );
+  const totalCount = firstPage?.total ?? allCustomers.length;
   const customerSections = useMemo(
-    () => groupCustomersByLetter(list),
-    [list]
+    () => groupCustomersByLetter(allCustomers),
+    [allCustomers]
   );
-  const hasCustomers = allCustomers.length > 0;
+  const hasCustomers = totalCount > 0;
   const isSearching = searchName.trim().length > 0;
+  const isInitialLoading = isLoading && !data;
+
+  const handleEndReached = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      void fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handlePressCustomer = (customer: CustomerResponse) => {
     router.push({
@@ -68,7 +104,7 @@ export default function CustomersScreen() {
     </View>
   );
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
         <LoadingState message="Carregando clientes..." />
@@ -94,11 +130,11 @@ export default function CustomersScreen() {
           <SectionList
             sections={customerSections}
             keyExtractor={(item) => item.id}
-            renderSectionHeader={({ section: { title, data } }) => (
-              <ListSectionHeader title={title} count={data.length} />
+            renderSectionHeader={({ section: { title, data: sectionData } }) => (
+              <ListSectionHeader title={title} count={sectionData.length} />
             )}
             renderItem={({ item, index, section }) => (
-              <StaggeredEntrance index={index}>
+              <StaggeredEntrance index={index} enabled={animateItems}>
                 <CustomerListItem
                   customer={item}
                   onPress={handlePressCustomer}
@@ -112,8 +148,10 @@ export default function CustomersScreen() {
                 paddingHorizontal: horizontalPadding,
                 paddingBottom: 120 + insets.bottom,
               },
-              list.length === 0 && styles.listContentEmpty,
+              allCustomers.length === 0 && styles.listContentEmpty,
             ]}
+            onEndReached={handleEndReached}
+            onEndReachedThreshold={0.35}
             stickySectionHeadersEnabled={false}
             refreshControl={
               <RefreshControl
@@ -125,15 +163,25 @@ export default function CustomersScreen() {
             }
             ListHeaderComponent={
               <View style={styles.header}>
-                <StaggeredEntrance variant="header" index={0}>
-                  <CustomersSummary count={allCustomers.length} />
+                <StaggeredEntrance variant="header" index={0} enabled={animateItems}>
+                  <CustomersSummary count={totalCount} />
                 </StaggeredEntrance>
                 {hasCustomers ? (
-                  <StaggeredEntrance variant="header" index={1}>
+                  <StaggeredEntrance variant="header" index={1} enabled={animateItems}>
                     <CustomersSearch value={searchName} onChange={setSearchName} />
                   </StaggeredEntrance>
                 ) : null}
               </View>
+            }
+            ListFooterComponent={
+              isFetchingNextPage ? (
+                <View style={styles.footerLoader}>
+                  <ActivityIndicator color={colors.primary} />
+                  <Text style={[styles.footerLoaderText, { color: colors.textSecondary }]}>
+                    Carregando mais clientes...
+                  </Text>
+                </View>
+              ) : null
             }
             ListEmptyComponent={
               <CustomersEmptyState variant={isSearching ? "no-results" : "empty"} />
@@ -185,5 +233,14 @@ const createStyles = (isCompact: boolean) =>
     },
     listContentEmpty: {
       justifyContent: "center",
+    },
+    footerLoader: {
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      paddingVertical: 20,
+    },
+    footerLoaderText: {
+      fontSize: 13,
     },
   });

@@ -1,11 +1,18 @@
-import { CreateCustomerDTO, CustomerResponse, UpdateCustomerDTO } from "@app/shared";
+import {
+  CreateCustomerDTO,
+  CustomerListResult,
+  CustomerResponse,
+  ListCustomersQueryDTO,
+  UpdateCustomerDTO,
+} from "@app/shared";
 import { CUSTOMER_ROUTES } from "@/config/api-routes";
 import { requestData } from "./request";
 
-export function listCustomers() {
-  return requestData<CustomerResponse[]>({
+export function listCustomers(params?: ListCustomersQueryDTO) {
+  return requestData<CustomerListResult>({
     endpoint: CUSTOMER_ROUTES.list,
     method: "GET",
+    params,
   });
 }
 

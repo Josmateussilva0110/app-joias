@@ -22,7 +22,7 @@ import { useTheme, type ThemeColors } from "@/context/theme.context";
 export default function AnalyticsScreen() {
   const { colors } = useTheme();
   const { isCompact, screenPadding } = useAnalyticsLayout();
-  const styles = createStyles(colors, isCompact);
+  const styles = useMemo(() => createStyles(colors, isCompact), [colors, isCompact]);
   const {
     filters,
     setFilters,

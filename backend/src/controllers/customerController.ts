@@ -1,4 +1,5 @@
 import { Request, Response } from "express"
+import { ListCustomersQuery } from "@app/shared"
 import CustomerService from "../services/CustomerService"
 import { customerErrorHttpStatusMap } from "../errors/customerErrorHttpMapper"
 import { getAccessToken } from "../utils/getAccessToken"
@@ -27,7 +28,10 @@ class CustomerController {
   }
 
   async list(request: Request, response: Response): Promise<Response> {
-    const result = await CustomerService.list(getAccessToken(request))
+    const result = await CustomerService.list(
+      getAccessToken(request),
+      request.validatedQuery as ListCustomersQuery
+    )
 
     if (!result.status) {
       const httpStatus = getHttpStatusFromError(

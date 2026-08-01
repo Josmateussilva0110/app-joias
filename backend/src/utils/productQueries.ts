@@ -5,10 +5,22 @@ import {
   PRODUCT_SELECT,
 } from "../constants/product.constants"
 import { createSupabaseClientForUser } from "../database/supabase/supabase"
-import { applyListFilters } from "./productQueryFilters"
+import { getUserIdFromAccessToken } from "./accessToken"
+import {
+  buildFilterCacheKey,
+  filterOptionsCache,
+  listMetaCache,
+} from "./shortCache"
+import { applyListFilters, toListMetaRpcParams } from "./productQueryFilters"
 import { getAvailableYears } from "./productYears"
 
 type ProductSupabaseClient = ReturnType<typeof createSupabaseClientForUser>
+
+export type ProductListMeta = {
+  summary_total: number
+  has_any: boolean
+  available_years: number[]
+}
 
 export function buildItemsQuery(
   supabase: ProductSupabaseClient,
@@ -31,36 +43,63 @@ export function buildItemsQuery(
     .order("id", { ascending: false })
 }
 
-export async function fetchFilteredSummaryTotal(
+export async function fetchPageOneMeta(
   supabase: ProductSupabaseClient,
+  accessToken: string,
   filters: ListProductsQuery
-) {
-  const { data, error } = filters.customer_name
-    ? await applyListFilters(
-        supabase
-          .from("products")
-          .select("value, customers!inner(name)")
-          .ilike("customers.name", `%${filters.customer_name}%`),
-        filters
-      )
-    : await applyListFilters(
-        supabase.from("products").select("value"),
-        filters
-      )
+): Promise<ProductListMeta> {
+  const userId = getUserIdFromAccessToken(accessToken)
+  const cacheKey = userId
+    ? buildFilterCacheKey(userId, toListMetaRpcParams(filters))
+    : null
 
-  if (error) {
-    console.error("[ProductService.list.summary]", error)
-    return 0
+  if (cacheKey) {
+    const cached = listMetaCache.get(cacheKey)
+    if (cached) return cached
   }
 
-  return (data ?? []).reduce((sum, row) => {
-    const value =
-      typeof row.value === "string" ? Number(row.value) : Number(row.value ?? 0)
-    return sum + (Number.isFinite(value) ? value : 0)
-  }, 0)
+  const { data, error } = await supabase.rpc(
+    "get_my_products_list_meta",
+    toListMetaRpcParams(filters)
+  )
+
+  if (error) {
+    console.error("[ProductService.list.meta]", error)
+    return {
+      summary_total: 0,
+      has_any: false,
+      available_years: getAvailableYears([]),
+    }
+  }
+
+  const meta = (data ?? {}) as ProductListMeta
+  const result: ProductListMeta = {
+    summary_total: Number(meta.summary_total ?? 0),
+    has_any: Boolean(meta.has_any),
+    available_years: getAvailableYears(
+      Array.isArray(meta.available_years) ? meta.available_years : []
+    ),
+  }
+
+  if (cacheKey) {
+    listMetaCache.set(cacheKey, result)
+  }
+
+  return result
 }
 
-export async function fetchAvailableYears(supabase: ProductSupabaseClient) {
+export async function fetchAvailableYears(
+  supabase: ProductSupabaseClient,
+  accessToken?: string
+) {
+  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : undefined
+  const cacheKey = userId ? `${userId}:years` : null
+
+  if (cacheKey) {
+    const cached = filterOptionsCache.get(cacheKey)
+    if (cached) return getAvailableYears(cached.years)
+  }
+
   const { data, error } = await supabase.rpc("get_my_product_years")
 
   if (error) {
@@ -69,13 +108,32 @@ export async function fetchAvailableYears(supabase: ProductSupabaseClient) {
   }
 
   const years = (data ?? []).map((row: { year: number }) => row.year)
-  return getAvailableYears(years)
+  const normalized = getAvailableYears(years)
+
+  if (cacheKey) {
+    const existing = filterOptionsCache.get(cacheKey)
+    filterOptionsCache.set(cacheKey, {
+      years: normalized,
+      months: existing?.months ?? [],
+    })
+  }
+
+  return normalized
 }
 
 export async function fetchAvailableMonths(
   supabase: ProductSupabaseClient,
-  year?: number
+  year?: number,
+  accessToken?: string
 ) {
+  const userId = accessToken ? getUserIdFromAccessToken(accessToken) : undefined
+  const cacheKey = userId ? `${userId}:months:${year ?? "all"}` : null
+
+  if (cacheKey) {
+    const cached = filterOptionsCache.get(cacheKey)
+    if (cached) return cached.months
+  }
+
   const { data, error } = await supabase.rpc("get_my_product_months", {
     filter_year: year ?? null,
   })
@@ -85,5 +143,17 @@ export async function fetchAvailableMonths(
     return []
   }
 
-  return (data ?? []).map((row: { month: number }) => row.month)
+  const months = (data ?? []).map((row: { month: number }) => row.month)
+
+  if (cacheKey) {
+    filterOptionsCache.set(cacheKey, { years: [], months })
+  }
+
+  return months
+}
+
+export function invalidateProductCaches(userId?: string): void {
+  if (!userId) return
+  listMetaCache.deleteByPrefix(`${userId}:`)
+  filterOptionsCache.deleteByPrefix(`${userId}:`)
 }

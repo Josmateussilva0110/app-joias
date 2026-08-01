@@ -1,6 +1,6 @@
-import rateLimit from "express-rate-limit"
+import { createRateLimiter } from "../utils/createRateLimiter"
 
-export const refreshRateLimiter = rateLimit({
+export const refreshRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 30,
   skipSuccessfulRequests: true,
@@ -8,6 +8,4 @@ export const refreshRateLimiter = rateLimit({
     success: false,
     message: "Muitas tentativas. Tente novamente em 15 minutos.",
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 })

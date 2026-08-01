@@ -20,8 +20,18 @@ const resolvedApiUrl =
     ? rawApiUrl.trim().replace(/\/+$/, "")
     : resolveApiUrl(rawApiUrl.trim() || "auto");
 
-/** Cleartext só quando a API for HTTP local (dev); produção com HTTPS fica bloqueado. */
-const allowCleartextTraffic = resolvedApiUrl.startsWith("http://");
+/** Cleartext só em dev local; builds de produção exigem HTTPS. */
+const isProductionBuild =
+  process.env.EAS_BUILD === "true" || process.env.NODE_ENV === "production";
+
+if (isProductionBuild && resolvedApiUrl.startsWith("http://")) {
+  throw new Error(
+    "EXPO_PUBLIC_API_URL deve usar HTTPS em builds de produção."
+  );
+}
+
+const allowCleartextTraffic =
+  !isProductionBuild && resolvedApiUrl.startsWith("http://");
 
 const plugins = (appJson.expo.plugins ?? []).map((plugin) => {
   if (Array.isArray(plugin) && plugin[0] === "expo-build-properties") {

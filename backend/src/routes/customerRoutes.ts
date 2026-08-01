@@ -3,6 +3,7 @@ import {
   createCustomerSchema,
   updateCustomerSchema,
   customerIdParamSchema,
+  listCustomersQuerySchema,
 } from "@app/shared"
 import CustomerController from "../controllers/customerController"
 import { authMiddleware } from "../middleware/auth"
@@ -20,6 +21,7 @@ router.post(
 router.get(
   "/customers",
   authMiddleware,
+  validate(listCustomersQuerySchema, "query"),
   CustomerController.list
 )
 

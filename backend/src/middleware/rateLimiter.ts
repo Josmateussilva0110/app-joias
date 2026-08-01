@@ -1,16 +1,14 @@
-import rateLimit from "express-rate-limit"
+import { createRateLimiter } from "../utils/createRateLimiter"
 
 /**
- * MemoryStore: contadores resetam a cada deploy/restart.
- * Para produção multi-instância, configure REDIS_URL e use rate-limit-redis.
+ * Com REDIS_URL: contadores compartilhados entre instâncias.
+ * Sem Redis: MemoryStore (reset a cada deploy/restart).
  */
-export const rateLimiter = rateLimit({
+export const rateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 100,              
+  max: 100,
   message: {
     success: false,
     message: "Muitas requisições. Tente novamente em 15 minutos.",
   },
-  standardHeaders: true,
-  legacyHeaders: false,
 })

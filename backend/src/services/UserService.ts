@@ -1,4 +1,4 @@
-import { supabaseAuth, supabaseAdmin } from "../database/supabase/supabase"
+import { supabaseAuth, supabaseAdmin, createSupabaseClientForUser } from "../database/supabase/supabase"
 import { USER_PROFILE_SELECT } from "../constants/user.constants"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { UserErrorCode } from "../types/code/userCode"
@@ -125,8 +125,8 @@ class UserService {
                 }
             }
 
-            revokeAccessToken(accessToken)
-            revokeUserSessions(userId)
+            await revokeAccessToken(accessToken)
+            await revokeUserSessions(userId)
 
             return { status: true, data: null }
         } catch (error) {
@@ -174,12 +174,13 @@ class UserService {
         }
     }
 
-    async getProfile(userId: string): Promise<ServiceResult<UserProfile, UserErrorCode>> {
+    async getProfile(accessToken: string): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
-            const { data, error } = await supabaseAdmin
+            const supabase = createSupabaseClientForUser(accessToken)
+
+            const { data, error } = await supabase
                 .from("users")
                 .select(USER_PROFILE_SELECT)
-                .eq("id", userId)
                 .single()
 
             if (error || !data) {
@@ -210,14 +211,15 @@ class UserService {
     }
 
     async updateProfile(
-        userId: string,
+        accessToken: string,
         updates: { username: string }
     ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
-            const { data, error } = await supabaseAdmin
+            const supabase = createSupabaseClientForUser(accessToken)
+
+            const { data, error } = await supabase
                 .from("users")
                 .update({ username: updates.username })
-                .eq("id", userId)
                 .select(USER_PROFILE_SELECT)
                 .single()
 
@@ -249,14 +251,15 @@ class UserService {
     }
 
     async updateEarningsPercent(
-        userId: string,
+        accessToken: string,
         earningsPercent: number
     ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
         try {
-            const { data, error } = await supabaseAdmin
+            const supabase = createSupabaseClientForUser(accessToken)
+
+            const { data, error } = await supabase
                 .from("users")
                 .update({ earnings_percent: earningsPercent })
-                .eq("id", userId)
                 .select(USER_PROFILE_SELECT)
                 .single()
 

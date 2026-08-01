@@ -20,7 +20,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { useToast } from "@/context/toast.context";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
-import { useCustomers } from "@/hooks/use-customers";
+import { useCustomerPicker } from "@/hooks/use-customers";
 import {
   productEditFormSchema,
   productFormSchema,
@@ -54,7 +54,7 @@ export function ProductForm({
     isError: isCustomersError,
     error: customersError,
     refetch: refetchCustomers,
-  } = useCustomers();
+  } = useCustomerPicker();
 
   const hasCustomers = (customers?.length ?? 0) > 0;
 

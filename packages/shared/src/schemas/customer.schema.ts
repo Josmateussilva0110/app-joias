@@ -49,6 +49,38 @@ export const customerResponseSchema = z.object({
   updated_at: z.string(),
 });
 
+export const CUSTOMERS_PAGE_SIZE = 30;
+export const CUSTOMERS_MAX_PAGE_SIZE = 100;
+export const CUSTOMERS_PICKER_LIMIT = 200;
+
+export const listCustomersQuerySchema = z.object({
+  name: z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().trim().max(120).optional()
+  ),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(CUSTOMERS_MAX_PAGE_SIZE)
+    .optional()
+    .default(CUSTOMERS_PAGE_SIZE),
+});
+
+export const customerListResultSchema = z.object({
+  items: z.array(customerResponseSchema),
+  page: z.number().int(),
+  limit: z.number().int(),
+  has_more: z.boolean(),
+  total: z.number().int(),
+});
+
+export type ListCustomersQueryDTO = z.input<typeof listCustomersQuerySchema>;
+export type ListCustomersQuery = z.output<typeof listCustomersQuerySchema>;
+export type CustomerListResult = z.infer<typeof customerListResultSchema>;
+
 export type CreateCustomerDTO = z.infer<typeof createCustomerSchema>;
 export type UpdateCustomerDTO = z.infer<typeof updateCustomerSchema>;
 export type CustomerResponse = z.infer<typeof customerResponseSchema>;

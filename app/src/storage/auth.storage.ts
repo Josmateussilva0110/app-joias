@@ -1,7 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { AuthData } from "@/types/auth.types";
 
-const AUTH_KEY = "app_auth"; 
+const AUTH_KEY = "app_auth";
 
 export async function saveAuth(data: AuthData): Promise<void> {
   await SecureStore.setItemAsync(AUTH_KEY, JSON.stringify(data));

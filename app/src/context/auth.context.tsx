@@ -3,6 +3,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -56,40 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [signed, setSigned] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const unsubRefreshed = tokenManager.onRefreshed(
-      async (accessToken, refreshToken, expiresAt) => {
-        const current = await getAuth();
-        if (!current) return;
+  const tryRefreshSession = useCallback(async (stored: AuthData): Promise<boolean> => {
+    if (!stored) return false;
 
-        await saveAuth({
-          ...current,
-          accessToken,
-          refreshToken,
-          expiresAt,
-        });
-
-        await syncBiometricRefreshToken(current.user.email, refreshToken);
-      }
-    );
-
-    const unsubExpired = tokenManager.onExpired(async () => {
-      tokenManager.clearTokens();
-      await removeAuth();
-      await clearPersistedQueryCache();
-      setUser(null);
-      setSigned(false);
-    });
-
-    void loadUser();
-
-    return () => {
-      unsubRefreshed();
-      unsubExpired();
-    };
+    try {
+      const refreshed = await refreshService.refresh(stored.refreshToken);
+      setUser(refreshed.user);
+      setSigned(true);
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
-  async function loadUser() {
+  const clearLocalSession = useCallback(async () => {
+    tokenManager.clearTokens();
+    await removeAuth();
+    await clearBiometricLogin();
+    await clearPersistedQueryCache();
+    setUser(null);
+    setSigned(false);
+  }, []);
+
+  const loadUser = useCallback(async () => {
     try {
       const data = await getAuth();
 
@@ -110,49 +100,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const refreshed = await tryRefreshSession(data);
 
       if (!refreshed) {
-        tokenManager.clearTokens();
-        await removeAuth();
-        await clearPersistedQueryCache();
-        setUser(null);
-        setSigned(false);
+        await clearLocalSession();
       }
     } catch (err) {
       if (__DEV__) {
         console.error("[AUTH]", err);
       }
 
-      tokenManager.clearTokens();
-      await removeAuth();
-      await clearPersistedQueryCache();
-      setUser(null);
-      setSigned(false);
+      await clearLocalSession();
     } finally {
       setLoading(false);
     }
-  }
+  }, [clearLocalSession, tryRefreshSession]);
 
-  const tryRefreshSession = useCallback(async (stored: AuthData): Promise<boolean> => {
-    if (!stored) return false;
+  useEffect(() => {
+    const unsubRefreshed = tokenManager.onRefreshed(
+      async (accessToken, refreshToken, expiresAt) => {
+        const current = await getAuth();
+        if (!current) return;
 
-    try {
-      const refreshed = await refreshService.refresh(stored.refreshToken);
-      setUser(refreshed.user);
-      setSigned(true);
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
+        await saveAuth({
+          ...current,
+          accessToken,
+          refreshToken,
+          expiresAt,
+        });
 
-  async function establishSession(data: AuthData) {
+        await syncBiometricRefreshToken(current.user.email, refreshToken);
+      }
+    );
+
+    const unsubExpired = tokenManager.onExpired(async () => {
+      await clearLocalSession();
+    });
+
+    void loadUser();
+
+    return () => {
+      unsubRefreshed();
+      unsubExpired();
+    };
+  }, [clearLocalSession, loadUser]);
+
+  const establishSession = useCallback(async (data: AuthData) => {
     tokenManager.setTokens(data.accessToken, data.refreshToken);
     await saveAuth(data);
     await syncBiometricRefreshToken(data.user.email, data.refreshToken);
     setUser(data.user);
     setSigned(true);
-  }
+  }, []);
 
-  async function enableBiometricLogin() {
+  const enableBiometricLogin = useCallback(async () => {
     const available = await isBiometricHardwareAvailable();
 
     if (!available) {
@@ -186,13 +184,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       success: true,
       message: "Login biométrico ativado com sucesso.",
     };
-  }
+  }, []);
 
-  async function disableBiometricLogin() {
+  const disableBiometricLogin = useCallback(async () => {
     await clearBiometricLogin();
-  }
+  }, []);
 
-  async function loginWithBiometric() {
+  const loginWithBiometric = useCallback(async () => {
     const available = await isBiometricHardwareAvailable();
 
     if (!available) {
@@ -232,9 +230,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         message: "Não foi possível entrar com biometria. Use e-mail e senha.",
       };
     }
-  }
+  }, []);
 
-  async function register(dto: RegisterDTO) {
+  const register = useCallback(async (dto: RegisterDTO) => {
     const result = await registerUser(dto);
 
     if (!result.success) {
@@ -264,9 +262,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       success: true,
       message: "Conta criada com sucesso!",
     };
-  }
+  }, [establishSession]);
 
-  async function login(dto: LoginDTO) {
+  const login = useCallback(async (dto: LoginDTO) => {
     const result = await loginUser(dto);
 
     if (!result.success || !result.data) {
@@ -282,36 +280,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       success: true,
       message: result.message,
     };
-  }
+  }, [establishSession]);
 
-  async function logout() {
+  const logout = useCallback(async () => {
     try {
       await logoutUser();
     } catch {
       // Revoga sessão no servidor quando possível; logout local segue mesmo se falhar.
     }
 
-    tokenManager.clearTokens();
-    await removeAuth();
-    await clearPersistedQueryCache();
-    setUser(null);
-    setSigned(false);
-  }
+    await clearLocalSession();
+  }, [clearLocalSession]);
+
+  const value = useMemo(
+    () => ({
+      user,
+      signed,
+      loading,
+      login,
+      loginWithBiometric,
+      enableBiometricLogin,
+      disableBiometricLogin,
+      logout,
+      register,
+    }),
+    [
+      user,
+      signed,
+      loading,
+      login,
+      loginWithBiometric,
+      enableBiometricLogin,
+      disableBiometricLogin,
+      logout,
+      register,
+    ]
+  );
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        signed,
-        loading,
-        login,
-        loginWithBiometric,
-        enableBiometricLogin,
-        disableBiometricLogin,
-        logout,
-        register,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

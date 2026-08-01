@@ -26,6 +26,7 @@ const envSchema = z.object({
         .transform((val) => val.split(",").map((s) => s.trim()).filter(Boolean)),
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(1),
     RENDER_EXTERNAL_URL: z.string().url().optional(),
+    REDIS_URL: z.string().url().optional(),
 }).transform((data) => {
     const anonKey = data.SUPABASE_ANON_KEY ?? data.EXPO_PUBLIC_SUPABASE_ANON_KEY
     if (!anonKey) {

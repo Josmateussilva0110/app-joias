@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -35,7 +35,8 @@ export default function HomeScreen() {
   const { horizontalPadding, contentMaxWidth, isCompact } = useListLayout();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const styles = createStyles(colors, isCompact);
+  const styles = useMemo(() => createStyles(colors, isCompact), [colors, isCompact]);
+  const [animateItems, setAnimateItems] = useState(true);
   const {
     filters,
     setFilters,
@@ -89,6 +90,16 @@ export default function HomeScreen() {
   const summary = firstPage?.summary ?? { count: 0, total: 0 };
   const hasAnyProduct = firstPage?.has_any ?? false;
   const isInitialLoading = isLoading && !data;
+
+  useEffect(() => {
+    if (!animateItems) return;
+    const timer = setTimeout(() => setAnimateItems(false), 1200);
+    return () => clearTimeout(timer);
+  }, [animateItems]);
+
+  useEffect(() => {
+    setAnimateItems(true);
+  }, [queryFilters]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -168,10 +179,10 @@ export default function HomeScreen() {
             <ListSectionHeader title={title} isPaid={isPaid} count={data.length} />
           )}
           renderItem={({ item, index, section }) => (
-            <StaggeredEntrance index={index}>
+            <StaggeredEntrance index={index} enabled={animateItems}>
               <ProductListItem
                 product={item}
-                onPress={() => handlePressProduct(item.id)}
+                onPress={(product) => handlePressProduct(product.id)}
                 isLast={index === section.data.length - 1}
               />
             </StaggeredEntrance>
@@ -198,10 +209,10 @@ export default function HomeScreen() {
           ListHeaderComponent={
             hasAnyProduct ? (
               <View style={styles.header}>
-                <StaggeredEntrance variant="header" index={0}>
+                <StaggeredEntrance variant="header" index={0} enabled={animateItems}>
                   <ProductsSummary summary={summary} unpaidCount={unpaidCount} />
                 </StaggeredEntrance>
-                <StaggeredEntrance variant="header" index={1}>
+                <StaggeredEntrance variant="header" index={1} enabled={animateItems}>
                   <ProductsFilters
                     filters={filters}
                     filterOptions={filterOptions}

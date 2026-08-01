@@ -1,7 +1,15 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   CreateCustomerDTO,
+  CustomerListResult,
   CustomerResponse,
+  CUSTOMERS_PAGE_SIZE,
+  CUSTOMERS_PICKER_LIMIT,
   UpdateCustomerDTO,
 } from "@app/shared";
 import {
@@ -14,10 +22,10 @@ import {
 import { PRODUCTS_KEY } from "@/hooks/use-products";
 import { useAuth } from "./useAuth";
 
-export const CUSTOMERS_KEY = ["customers"] as const;
+export const CUSTOMERS_KEY = "customers";
 
 export function customerDetailKey(customerId: string) {
-  return [...CUSTOMERS_KEY, customerId] as const;
+  return [CUSTOMERS_KEY, customerId] as const;
 }
 
 interface QueryError extends Error {
@@ -25,14 +33,50 @@ interface QueryError extends Error {
   reason?: string;
 }
 
-export function useCustomers() {
+export type CustomersListFilters = {
+  name?: string;
+};
+
+export function useCustomers(filters?: CustomersListFilters) {
+  const { signed, loading } = useAuth();
+
+  return useInfiniteQuery<CustomerListResult, QueryError>({
+    queryKey: [CUSTOMERS_KEY, filters],
+    enabled: signed && !loading,
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
+      const res = await listCustomers({
+        ...filters,
+        page: pageParam,
+        limit: CUSTOMERS_PAGE_SIZE,
+      });
+
+      if (!res.success || !res.data?.items) {
+        const error = new Error(
+          res.message || "Não foi possível carregar os clientes."
+        ) as QueryError;
+        error.status = res.error?.status;
+        error.reason = res.error?.reason;
+        throw error;
+      }
+
+      return res.data;
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? lastPage.page + 1 : undefined,
+    staleTime: 60 * 1000,
+  });
+}
+
+/** Carrega clientes para o seletor do formulário de venda (limite maior, uma página). */
+export function useCustomerPicker() {
   const { signed, loading } = useAuth();
 
   return useQuery<CustomerResponse[], QueryError>({
-    queryKey: CUSTOMERS_KEY,
+    queryKey: [CUSTOMERS_KEY, "picker"],
     enabled: signed && !loading,
     queryFn: async () => {
-      const res = await listCustomers();
+      const res = await listCustomers({ page: 1, limit: CUSTOMERS_PICKER_LIMIT });
 
       if (!res.success) {
         const error = new Error(res.message) as QueryError;
@@ -41,7 +85,7 @@ export function useCustomers() {
         throw error;
       }
 
-      return res.data ?? [];
+      return res.data?.items ?? [];
     },
     staleTime: 60 * 1000,
   });
@@ -86,7 +130,7 @@ export function useCreateCustomer() {
       return res.data as { id: string };
     },
     onSuccess() {
-      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
     },
   });
 }
@@ -109,7 +153,7 @@ export function useUpdateCustomer(customerId: string) {
     },
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: customerDetailKey(customerId) });
-      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
     },
   });
@@ -131,7 +175,7 @@ export function useDeleteCustomer() {
     },
     onSuccess(_data, customerId) {
       queryClient.removeQueries({ queryKey: customerDetailKey(customerId) });
-      queryClient.invalidateQueries({ queryKey: CUSTOMERS_KEY });
+      queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
     },
   });

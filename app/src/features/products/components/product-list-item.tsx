@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { memo, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gem } from "lucide-react-native";
 import { ProductResponse } from "@app/shared";
-import { AnimatedPressable } from "@/components/ui/animated-pressable";
 import { useListLayout } from "@/hooks/use-list-layout";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { formatCurrency } from "../constants/product-labels";
@@ -16,17 +16,23 @@ type ProductListItemProps = {
   isLast?: boolean;
 };
 
-export function ProductListItem({
+export const ProductListItem = memo(function ProductListItem({
   product,
   onPress,
   isLast = false,
 }: ProductListItemProps) {
   const { colors } = useTheme();
   const { isCompact } = useListLayout();
-  const styles = createStyles(colors, isLast, isCompact);
+  const styles = useMemo(
+    () => createStyles(colors, isLast, isCompact),
+    [colors, isLast, isCompact]
+  );
 
   return (
-    <AnimatedPressable onPress={() => onPress(product)} style={styles.row}>
+    <Pressable
+      onPress={() => onPress(product)}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
       <View style={styles.dateCol}>
         <Text style={styles.day}>{formatProductDay(product.created_at)}</Text>
         <Text style={styles.month}>{formatProductMonthShort(product.created_at)}</Text>
@@ -52,9 +58,9 @@ export function ProductListItem({
       >
         {formatCurrency(product.value)}
       </Text>
-    </AnimatedPressable>
+    </Pressable>
   );
-}
+});
 
 const createStyles = (
   colors: ThemeColors,
@@ -69,6 +75,9 @@ const createStyles = (
       paddingVertical: isCompact ? 8 : 10,
       borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
       borderBottomColor: colors.backgroundSelected,
+    },
+    rowPressed: {
+      opacity: 0.72,
     },
     dateCol: {
       width: isCompact ? 32 : 36,

@@ -15,18 +15,15 @@ import { PRODUCT_SELECT } from "../constants/product.constants"
 import { createSupabaseClientForUser } from "../database/supabase/supabase"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { ProductErrorCode } from "../types/code/productCode"
-import {
-  AnalyticsSourceRow,
-  buildProductAnalytics,
-} from "../utils/productAnalytics"
 import { buildProductFilterOptions } from "../utils/productFilterOptions"
-import { applyListFilters } from "../utils/productQueryFilters"
 import {
   buildItemsQuery,
   fetchAvailableMonths,
   fetchAvailableYears,
-  fetchFilteredSummaryTotal,
+  fetchPageOneMeta,
+  invalidateProductCaches,
 } from "../utils/productQueries"
+import { getUserIdFromAccessToken } from "../utils/accessToken"
 
 class ProductService {
   async create(
@@ -56,6 +53,8 @@ class ProductService {
         },
       }
     }
+
+    invalidateProductCaches(getUserIdFromAccessToken(accessToken))
 
     return {
       status: true,
@@ -108,31 +107,7 @@ class ProductService {
       }
     }
 
-    const pageOneTasks: [
-      Promise<{ summaryTotal: number; hasAny: boolean }>,
-      Promise<number[]>,
-    ] = [
-      (async () => {
-        if (total > 0) {
-          const summaryTotal = await fetchFilteredSummaryTotal(supabase, filters)
-          return { summaryTotal, hasAny: true }
-        }
-
-        const { count: totalCount, error: countError } = await supabase
-          .from("products")
-          .select("id", { count: "exact", head: true })
-
-        if (countError) {
-          console.error("[ProductService.list.hasAny]", countError)
-          return { summaryTotal: 0, hasAny: false }
-        }
-
-        return { summaryTotal: 0, hasAny: (totalCount ?? 0) > 0 }
-      })(),
-      fetchAvailableYears(supabase),
-    ]
-
-    const [{ summaryTotal, hasAny }, availableYears] = await Promise.all(pageOneTasks)
+    const meta = await fetchPageOneMeta(supabase, accessToken, filters)
 
     return {
       status: true,
@@ -140,10 +115,10 @@ class ProductService {
         ...result,
         summary: {
           count: total,
-          total: summaryTotal,
+          total: meta.summary_total,
         },
-        has_any: hasAny,
-        available_years: availableYears,
+        has_any: meta.has_any,
+        available_years: meta.available_years,
       },
     }
   }
@@ -222,6 +197,8 @@ class ProductService {
       }
     }
 
+    invalidateProductCaches(getUserIdFromAccessToken(accessToken))
+
     return {
       status: true,
       data: { id: row.id },
@@ -234,21 +211,15 @@ class ProductService {
   ): Promise<ServiceResult<ProductAnalytics, ProductErrorCode>> {
     const supabase = createSupabaseClientForUser(accessToken)
 
-    const selectQuery = filters.customer_name
-      ? "value, payment_status, jewelry_type, created_at, customers!inner(name)"
-      : "value, payment_status, jewelry_type, created_at, customers(name)"
-
-    let query = supabase.from("products").select(selectQuery)
-
-    if (filters.customer_name) {
-      query = query.ilike("customers.name", `%${filters.customer_name}%`)
-    }
-
-    query = applyListFilters(query, filters)
-
     const [{ data, error }, availableYears] = await Promise.all([
-      query,
-      fetchAvailableYears(supabase),
+      supabase.rpc("get_my_product_analytics", {
+        p_customer_name: filters.customer_name ?? null,
+        p_jewelry_type: filters.jewelry_type ?? null,
+        p_payment: filters.payment ?? "all",
+        p_month: filters.month ?? null,
+        p_year: filters.year ?? null,
+      }),
+      fetchAvailableYears(supabase, accessToken),
     ])
 
     if (error) {
@@ -262,13 +233,14 @@ class ProductService {
       }
     }
 
+    const analytics = (data ?? {}) as Omit<ProductAnalytics, "available_years">
+
     return {
       status: true,
-      data: buildProductAnalytics(
-        (data ?? []) as AnalyticsSourceRow[],
-        filters,
-        availableYears
-      ),
+      data: {
+        ...analytics,
+        available_years: availableYears,
+      },
     }
   }
 
@@ -279,8 +251,8 @@ class ProductService {
     const supabase = createSupabaseClientForUser(accessToken)
 
     const [availableYears, availableMonths] = await Promise.all([
-      fetchAvailableYears(supabase),
-      fetchAvailableMonths(supabase, query.year),
+      fetchAvailableYears(supabase, accessToken),
+      fetchAvailableMonths(supabase, query.year, accessToken),
     ])
 
     return {
@@ -322,6 +294,8 @@ class ProductService {
         },
       }
     }
+
+    invalidateProductCaches(getUserIdFromAccessToken(accessToken))
 
     return { status: true, data: undefined }
   }

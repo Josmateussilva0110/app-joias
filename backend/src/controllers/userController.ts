@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import UserService from "../services/UserService"
 import { userErrorHttpStatusMap } from "../errors/userErrorHttpMapper"
+import { getAccessToken } from "../utils/getAccessToken"
 import { getHttpStatusFromError } from "../utils/getHttpStatusFromError"
 
 class UserController {
@@ -93,9 +94,7 @@ class UserController {
   }
 
   async getProfile(request: Request, response: Response): Promise<Response> {
-    const userId = request.user.id
-
-    const result = await UserService.getProfile(userId)
+    const result = await UserService.getProfile(getAccessToken(request))
 
     if (!result.status) {
       const httpStatus = getHttpStatusFromError(
@@ -115,10 +114,9 @@ class UserController {
   }
 
   async updateProfile(request: Request, response: Response): Promise<Response> {
-    const userId = request.user.id
     const { username } = request.body
 
-    const result = await UserService.updateProfile(userId, { username })
+    const result = await UserService.updateProfile(getAccessToken(request), { username })
 
     if (!result.status) {
       const httpStatus = getHttpStatusFromError(
@@ -139,10 +137,12 @@ class UserController {
   }
 
   async updateEarningsPercent(request: Request, response: Response): Promise<Response> {
-    const userId = request.user.id
     const { earnings_percent } = request.body
 
-    const result = await UserService.updateEarningsPercent(userId, earnings_percent)
+    const result = await UserService.updateEarningsPercent(
+      getAccessToken(request),
+      earnings_percent
+    )
 
     if (!result.status) {
       const httpStatus = getHttpStatusFromError(

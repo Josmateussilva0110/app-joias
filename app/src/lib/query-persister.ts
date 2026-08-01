@@ -8,7 +8,7 @@ const CACHE_KEY = "APP_QUERY_CACHE_V2";
  * Versão do cache persistido. Incremente ao mudar formatos de query
  * (ex.: useQuery -> useInfiniteQuery) para descartar dados antigos.
  */
-export const QUERY_CACHE_BUSTER = "20260729-infinite-products";
+export const QUERY_CACHE_BUSTER = "20260801-no-pii-persist";
 
 /**
  * Persiste o cache do React Query no AsyncStorage.

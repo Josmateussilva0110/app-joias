@@ -23,8 +23,8 @@ function toAuthUser(payload: SupabaseJwtPayload): User {
   }
 }
 
-function verifyJwtLocally(token: string): User | null {
-  if (isAccessTokenRevoked(token)) return null
+async function verifyJwtLocally(token: string): Promise<User | null> {
+  if (await isAccessTokenRevoked(token)) return null
 
   try {
     const payload = jwt.verify(token, env.SUPABASE_JWT_SECRET, {
@@ -32,7 +32,7 @@ function verifyJwtLocally(token: string): User | null {
     }) as SupabaseJwtPayload
 
     if (!payload.sub) return null
-    if (isUserSessionRevoked(payload.sub)) return null
+    if (await isUserSessionRevoked(payload.sub)) return null
 
     return toAuthUser(payload)
   } catch {
@@ -54,7 +54,7 @@ export async function authMiddleware(
 
   const token = authHeader.split(" ")[1]
 
-  const localUser = verifyJwtLocally(token)
+  const localUser = await verifyJwtLocally(token)
   if (localUser) {
     request.user = localUser
     request.accessToken = token
@@ -69,7 +69,7 @@ export async function authMiddleware(
     return
   }
 
-  if (isUserSessionRevoked(data.user.id)) {
+  if (await isUserSessionRevoked(data.user.id)) {
     response.status(401).json({ success: false, message: "Sessão encerrada. Faça login novamente." })
     return
   }

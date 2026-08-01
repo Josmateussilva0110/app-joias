@@ -1,6 +1,7 @@
 import type { TextStyle } from "react-native";
 
 import type { ThemeColors } from "@/context/theme.context";
+import { FontFamily } from "@/constants/typography";
 
 export function getAnalyticsChartColors(colors: ThemeColors) {
   return {
@@ -22,5 +23,6 @@ export function getAnalyticsAxisLabelStyle(
   return {
     color: colors.textSecondary,
     fontSize: isCompact ? 9 : 10,
+    fontFamily: FontFamily.medium,
   };
 }

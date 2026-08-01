@@ -1,6 +1,9 @@
 import {
   CreateCustomerDTO,
+  CustomerListResult,
   CustomerResponse,
+  CUSTOMERS_PAGE_SIZE,
+  ListCustomersQuery,
   UpdateCustomerDTO,
   mapCustomerRow,
 } from "@app/shared"
@@ -135,14 +138,26 @@ class CustomerService {
   }
 
   async list(
-    accessToken: string
-  ): Promise<ServiceResult<CustomerResponse[], CustomerErrorCode>> {
+    accessToken: string,
+    query: ListCustomersQuery = { page: 1, limit: CUSTOMERS_PAGE_SIZE }
+  ): Promise<ServiceResult<CustomerListResult, CustomerErrorCode>> {
     const supabase = createSupabaseClientForUser(accessToken)
+    const page = query.page ?? 1
+    const limit = query.limit ?? CUSTOMERS_PAGE_SIZE
+    const from = (page - 1) * limit
+    const to = from + limit - 1
 
-    const { data, error } = await supabase
+    let dbQuery = supabase
       .from("customers")
-      .select(CUSTOMER_SELECT)
+      .select(CUSTOMER_SELECT, { count: "exact" })
+      .order("name", { ascending: true })
       .order("created_at", { ascending: false })
+
+    if (query.name) {
+      dbQuery = dbQuery.ilike("name", `%${query.name}%`)
+    }
+
+    const { data, error, count } = await dbQuery.range(from, to)
 
     if (error) {
       console.error("[CustomerService.list]", error)
@@ -155,9 +170,18 @@ class CustomerService {
       }
     }
 
+    const items = (data ?? []).map(mapCustomerRow)
+    const total = count ?? 0
+
     return {
       status: true,
-      data: (data ?? []).map(mapCustomerRow),
+      data: {
+        items,
+        page,
+        limit,
+        total,
+        has_more: from + items.length < total,
+      },
     }
   }
 

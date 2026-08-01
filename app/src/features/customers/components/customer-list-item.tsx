@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { memo, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { CustomerResponse } from "@app/shared";
 import { AvatarInitials } from "@/components/ui/avatar-initials";
-import { AnimatedPressable } from "@/components/ui/animated-pressable";
 import { useListLayout } from "@/hooks/use-list-layout";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import {
@@ -15,18 +15,24 @@ type CustomerListItemProps = {
   isLast?: boolean;
 };
 
-export function CustomerListItem({
+export const CustomerListItem = memo(function CustomerListItem({
   customer,
   onPress,
   isLast = false,
 }: CustomerListItemProps) {
   const { colors } = useTheme();
   const { isCompact } = useListLayout();
-  const styles = createStyles(colors, isLast, isCompact);
+  const styles = useMemo(
+    () => createStyles(colors, isLast, isCompact),
+    [colors, isLast, isCompact]
+  );
   const avatarSize = isCompact ? 32 : 34;
 
   return (
-    <AnimatedPressable onPress={() => onPress(customer)} style={styles.row}>
+    <Pressable
+      onPress={() => onPress(customer)}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+    >
       <AvatarInitials name={customer.name} size={avatarSize} />
 
       <View style={styles.content}>
@@ -38,9 +44,9 @@ export function CustomerListItem({
           {formatCustomerBirthDate(customer.birth_date)}
         </Text>
       </View>
-    </AnimatedPressable>
+    </Pressable>
   );
-}
+});
 
 const createStyles = (
   colors: ThemeColors,
@@ -55,6 +61,9 @@ const createStyles = (
       paddingVertical: isCompact ? 8 : 10,
       borderBottomWidth: isLast ? 0 : StyleSheet.hairlineWidth,
       borderBottomColor: colors.backgroundSelected,
+    },
+    rowPressed: {
+      opacity: 0.72,
     },
     content: {
       flex: 1,
