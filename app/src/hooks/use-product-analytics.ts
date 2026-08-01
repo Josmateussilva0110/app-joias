@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ProductAnalytics, ProductAnalyticsQueryDTO } from "@app/shared";
 
 import { getProductAnalytics } from "@/services/product.service";
@@ -38,5 +38,6 @@ export function useProductAnalytics(
       return res.data;
     },
     staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
   });
 }

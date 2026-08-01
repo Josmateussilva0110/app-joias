@@ -21,7 +21,6 @@ import {
   updateCustomer,
 } from "@/services/customer.service";
 import { PRODUCTS_KEY } from "@/hooks/use-products";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useAuth } from "./useAuth";
 
 export const CUSTOMERS_KEY = "customers";
@@ -97,10 +96,9 @@ export function useCustomerPicker() {
 }
 
 /** Busca clientes no servidor para o modal de seleção na venda. */
-export function useCustomerPickerSearch(searchName: string, enabled: boolean) {
+export function useCustomerPickerSearch(searchQuery: string, enabled: boolean) {
   const { signed, loading } = useAuth();
-  const debouncedSearch = useDebouncedValue(searchName, 400);
-  const trimmedSearch = debouncedSearch.trim();
+  const trimmedSearch = searchQuery.trim();
   const nameFilter = trimmedSearch.length > 0 ? trimmedSearch : undefined;
 
   return useQuery<CustomerListResult, QueryError>({

@@ -1,4 +1,5 @@
 import {
+  keepPreviousData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -65,6 +66,7 @@ export function useProducts(
     },
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? lastPage.page + 1 : undefined,
+    placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
   });
 }

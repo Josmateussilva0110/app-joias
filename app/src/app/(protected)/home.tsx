@@ -23,7 +23,6 @@ import { ProductsFilters } from "@/features/products/components/products-filters
 import { toListProductsQuery } from "@/features/products/utils/filter-products";
 import { groupProductsByPayment } from "@/features/products/utils/group-products-by-payment";
 import { sortProductsDescending } from "@/features/products/utils/sort-products";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useListLayout } from "@/hooks/use-list-layout";
 import { useProducts } from "@/hooks/use-products";
 import { useProductFiltersState } from "@/hooks/use-product-filters";
@@ -46,17 +45,15 @@ export default function HomeScreen() {
     error: filtersError,
     refetch: refetchFilters,
   } = useProductFiltersState();
-  const debouncedCustomerName = useDebouncedValue(filters?.customerName ?? "", 400);
-
   const queryFilters = useMemo(
-    () =>
-      filters
-        ? toListProductsQuery({
-            ...filters,
-            customerName: debouncedCustomerName,
-          })
-        : undefined,
-    [filters, debouncedCustomerName]
+    () => (filters ? toListProductsQuery(filters) : undefined),
+    [
+      filters?.customerName,
+      filters?.jewelryName,
+      filters?.payment,
+      filters?.month,
+      filters?.year,
+    ]
   );
 
   const {

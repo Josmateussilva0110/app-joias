@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gem } from "lucide-react-native";
 import { ProductFilterOptions } from "@app/shared";
@@ -29,19 +30,54 @@ export function ProductsFilters({
   const monthOptions = mapFilterOptionsToSelect(filterOptions.months);
   const yearOptions = mapFilterOptionsToSelect(filterOptions.years);
 
+  const [customerDraft, setCustomerDraft] = useState(filters.customerName);
+  const [jewelryDraft, setJewelryDraft] = useState(filters.jewelryName);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+
+  useEffect(() => {
+    setCustomerDraft(filters.customerName);
+    setJewelryDraft(filters.jewelryName);
+  }, [filters.customerName, filters.jewelryName]);
+
+  const submitCustomerSearch = (value: string = customerDraft) => {
+    onChange({
+      ...filtersRef.current,
+      customerName: value,
+    });
+  };
+
+  const submitJewelrySearch = (value: string = jewelryDraft) => {
+    onChange({
+      ...filtersRef.current,
+      jewelryName: value,
+    });
+  };
+
+  const pushChipFilters = (next: Partial<ProductFilters>) => {
+    onChange({
+      ...filtersRef.current,
+      customerName: customerDraft,
+      jewelryName: jewelryDraft,
+      ...next,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <View style={[styles.searchRow, isTablet && styles.searchRowTablet]}>
         <SearchBar
           style={isTablet ? styles.searchField : undefined}
-          value={filters.customerName}
-          onChange={(customerName) => onChange({ ...filters, customerName })}
+          value={customerDraft}
+          onChange={setCustomerDraft}
+          onSubmit={submitCustomerSearch}
           placeholder="Buscar cliente"
         />
         <SearchBar
           style={isTablet ? styles.searchField : undefined}
-          value={filters.jewelryName}
-          onChange={(jewelryName) => onChange({ ...filters, jewelryName })}
+          value={jewelryDraft}
+          onChange={setJewelryDraft}
+          onSubmit={submitJewelrySearch}
           placeholder="Buscar joia"
           icon={Gem}
           autoCapitalize="sentences"
@@ -54,7 +90,9 @@ export function ProductsFilters({
           value={filters.payment}
           options={paymentOptions}
           onChange={(payment) =>
-            onChange({ ...filters, payment: payment as ProductFilters["payment"] })
+            pushChipFilters({
+              payment: payment as ProductFilters["payment"],
+            })
           }
           active={filters.payment !== "all"}
         />
@@ -64,7 +102,7 @@ export function ProductsFilters({
           value={toMonthFilterValue(filters.month)}
           options={monthOptions}
           onChange={(value) =>
-            onChange({ ...filters, month: parseMonthFilter(value) })
+            pushChipFilters({ month: parseMonthFilter(value) })
           }
           active={filters.month !== null}
         />
@@ -74,8 +112,7 @@ export function ProductsFilters({
           value={toYearFilterValue(filters.year)}
           options={yearOptions}
           onChange={(value) =>
-            onChange({
-              ...filters,
+            pushChipFilters({
               year: parseYearFilter(value),
               month: null,
             })

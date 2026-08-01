@@ -24,7 +24,6 @@ import { CustomersSearch } from "@/features/customers/components/customers-searc
 import { CustomersSummary } from "@/features/customers/components/customers-summary";
 import { groupCustomersByLetter } from "@/features/customers/utils/group-customers-by-letter";
 import { useCustomers } from "@/hooks/use-customers";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useListLayout } from "@/hooks/use-list-layout";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
 import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
@@ -35,13 +34,13 @@ export default function CustomersScreen() {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(isCompact), [isCompact]);
-  const [searchName, setSearchName] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [animateItems, setAnimateItems] = useState(true);
-  const debouncedSearch = useDebouncedValue(searchName, 400);
 
   const listFilters = useMemo(
-    () => (debouncedSearch.trim() ? { name: debouncedSearch.trim() } : undefined),
-    [debouncedSearch]
+    () => (searchQuery.trim() ? { name: searchQuery.trim() } : undefined),
+    [searchQuery]
   );
 
   const {
@@ -77,8 +76,8 @@ export default function CustomersScreen() {
     [allCustomers]
   );
   const hasCustomers = totalCount > 0;
-  const isSearching = searchName.trim().length > 0;
-  const showSearch = hasCustomers || isSearching;
+  const isSearching = searchQuery.trim().length > 0;
+  const showSearch = hasCustomers || isSearching || searchInput.trim().length > 0;
   const isInitialLoading = isLoading && !data;
 
   const handleEndReached = useCallback(() => {
@@ -169,7 +168,11 @@ export default function CustomersScreen() {
                 </StaggeredEntrance>
                 {showSearch ? (
                   <StaggeredEntrance variant="header" index={1} enabled={animateItems}>
-                    <CustomersSearch value={searchName} onChange={setSearchName} />
+                    <CustomersSearch
+                      value={searchInput}
+                      onChange={setSearchInput}
+                      onSubmit={(value) => setSearchQuery(value.trim())}
+                    />
                   </StaggeredEntrance>
                 ) : null}
                 {isError ? (

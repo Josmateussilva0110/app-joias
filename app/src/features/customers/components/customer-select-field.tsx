@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
+  type KeyboardEvent,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ChevronDown, Check, User } from "lucide-react-native";
 import { CustomerResponse } from "@app/shared";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
@@ -33,9 +35,12 @@ export function CustomerSelectField({
   placeholder = "Selecione um cliente",
 }: CustomerSelectFieldProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = createStyles(colors);
   const [open, setOpen] = useState(false);
-  const [searchName, setSearchName] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const {
     data: searchResult,
@@ -44,13 +49,13 @@ export function CustomerSelectField({
     isError,
     error: searchError,
     refetch,
-  } = useCustomerPickerSearch(searchName, open);
+  } = useCustomerPickerSearch(searchQuery, open);
 
   const selectedCustomer =
     customers.find((customer) => customer.id === value) ??
     searchResult?.items.find((customer) => customer.id === value);
 
-  const isSearching = searchName.trim().length > 0;
+  const isSearching = searchQuery.trim().length > 0;
 
   const options = useMemo(() => {
     const items = searchResult?.items ?? [];
@@ -76,14 +81,44 @@ export function CustomerSelectField({
   const selectedLabel = selectedCustomer?.name ?? placeholder;
 
   function handleClose() {
+    Keyboard.dismiss();
     setOpen(false);
-    setSearchName("");
+    setSearchInput("");
+    setSearchQuery("");
   }
 
   function handleSelect(customerId: string) {
     onChange(customerId);
     handleClose();
   }
+
+  useEffect(() => {
+    if (!open) {
+      setKeyboardInset(0);
+      return;
+    }
+
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const onShow = (event: KeyboardEvent) => {
+      setKeyboardInset(event.endCoordinates.height);
+    };
+    const onHide = () => setKeyboardInset(0);
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [open]);
+
+  const sheetBottomPadding = keyboardInset > 0 ? 16 : 16 + insets.bottom;
+  const optionsListMaxHeight = keyboardInset > 0 ? 160 : 320;
 
   return (
     <View style={styles.field}>
@@ -111,92 +146,102 @@ export function CustomerSelectField({
       <Modal
         visible={open}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={handleClose}
+        statusBarTranslucent
       >
-        <KeyboardAvoidingView
-          style={styles.backdrop}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-        >
-          <Pressable style={styles.backdropPressable} onPress={handleClose}>
-            <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
-              <Text style={styles.sheetTitle}>Selecionar cliente</Text>
+        <Pressable style={styles.backdropPressable} onPress={handleClose}>
+          <Pressable
+            style={[
+              styles.sheet,
+              {
+                marginBottom: keyboardInset,
+                paddingBottom: sheetBottomPadding,
+                maxHeight: keyboardInset > 0 ? "88%" : "70%",
+              },
+            ]}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <Text style={styles.sheetTitle}>Selecionar cliente</Text>
 
-              <View style={styles.searchWrap}>
-                <CustomersSearch value={searchName} onChange={setSearchName} />
+            <View style={styles.searchWrap}>
+              <CustomersSearch
+                value={searchInput}
+                onChange={setSearchInput}
+                onSubmit={(value) => setSearchQuery(value.trim())}
+              />
+            </View>
+
+            {isFetching && !isLoading ? (
+              <View style={styles.searchStatus}>
+                <ActivityIndicator size="small" color={colors.primary} />
               </View>
+            ) : null}
 
-              {isFetching && !isLoading ? (
-                <View style={styles.searchStatus}>
-                  <ActivityIndicator size="small" color={colors.primary} />
-                </View>
-              ) : null}
-
-              {isError ? (
-                <View style={styles.searchError}>
-                  <Text style={styles.searchErrorText}>
-                    {searchError?.message ?? "Não foi possível buscar os clientes."}
-                  </Text>
-                  <Text onPress={() => refetch()} style={styles.searchErrorRetry}>
-                    Tentar novamente
-                  </Text>
-                </View>
-              ) : null}
-
-              {showLimitHint ? (
-                <Text style={styles.hint}>
-                  Mostrando {options.length} de {totalCount} clientes. Busque por nome
-                  para refinar.
+            {isError ? (
+              <View style={styles.searchError}>
+                <Text style={styles.searchErrorText}>
+                  {searchError?.message ?? "Não foi possível buscar os clientes."}
                 </Text>
-              ) : null}
+                <Text onPress={() => refetch()} style={styles.searchErrorRetry}>
+                  Tentar novamente
+                </Text>
+              </View>
+            ) : null}
 
-              <ScrollView
-                style={styles.optionsList}
-                bounces={false}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                {isLoading ? (
-                  <View style={styles.emptyState}>
-                    <ActivityIndicator color={colors.primary} />
-                    <Text style={styles.emptyDescription}>Carregando clientes...</Text>
-                  </View>
-                ) : options.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyTitle}>Nenhum cliente encontrado</Text>
-                    <Text style={styles.emptyDescription}>
-                      Tente buscar por outro nome.
-                    </Text>
-                  </View>
-                ) : (
-                  options.map((option) => {
-                    const isSelected = option.value === value;
+            {showLimitHint ? (
+              <Text style={styles.hint}>
+                Mostrando {options.length} de {totalCount} clientes. Busque por nome
+                para refinar.
+              </Text>
+            ) : null}
 
-                    return (
-                      <TouchableOpacity
-                        key={option.value}
-                        onPress={() => handleSelect(option.value)}
-                        activeOpacity={0.7}
-                        style={[styles.option, isSelected && styles.optionSelected]}
+            <ScrollView
+              style={[styles.optionsList, { maxHeight: optionsListMaxHeight }]}
+              bounces={false}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {isLoading ? (
+                <View style={styles.emptyState}>
+                  <ActivityIndicator color={colors.primary} />
+                  <Text style={styles.emptyDescription}>Carregando clientes...</Text>
+                </View>
+              ) : options.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>Nenhum cliente encontrado</Text>
+                  <Text style={styles.emptyDescription}>
+                    Tente buscar por outro nome.
+                  </Text>
+                </View>
+              ) : (
+                options.map((option) => {
+                  const isSelected = option.value === value;
+
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() => handleSelect(option.value)}
+                      activeOpacity={0.7}
+                      style={[styles.option, isSelected && styles.optionSelected]}
+                    >
+                      <Text
+                        style={[
+                          styles.optionText,
+                          isSelected && styles.optionTextSelected,
+                        ]}
                       >
-                        <Text
-                          style={[
-                            styles.optionText,
-                            isSelected && styles.optionTextSelected,
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
+                        {option.label}
+                      </Text>
 
-                        {isSelected ? <Check size={18} color={colors.primary} /> : null}
-                      </TouchableOpacity>
-                    );
-                  })
-                )}
-              </ScrollView>
-            </Pressable>
+                      {isSelected ? <Check size={18} color={colors.primary} /> : null}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
           </Pressable>
-        </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -243,20 +288,15 @@ const createStyles = (colors: ThemeColors) =>
       fontSize: 12,
       color: colors.error,
     },
-    backdrop: {
-      flex: 1,
-    },
     backdropPressable: {
       flex: 1,
       justifyContent: "flex-end",
       backgroundColor: "rgba(0, 0, 0, 0.45)",
     },
     sheet: {
-      maxHeight: "70%",
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingTop: 20,
-      paddingBottom: 24,
       backgroundColor: colors.background,
     },
     sheetTitle: {
@@ -300,7 +340,6 @@ const createStyles = (colors: ThemeColors) =>
     },
     optionsList: {
       paddingHorizontal: 12,
-      maxHeight: 320,
     },
     option: {
       minHeight: 48,

@@ -14,7 +14,6 @@ import { AnalyticsDashboard } from "@/features/analytics/components/analytics-da
 import { useAnalyticsLayout } from "@/features/analytics/utils/use-analytics-layout";
 import { ProductsFilters } from "@/features/products/components/products-filters";
 import { toListProductsQuery } from "@/features/products/utils/filter-products";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useProductAnalytics } from "@/hooks/use-product-analytics";
 import { useProductFiltersState } from "@/hooks/use-product-filters";
 import { useTheme, type ThemeColors } from "@/context/theme.context";
@@ -32,19 +31,15 @@ export default function AnalyticsScreen() {
     error: filtersError,
     refetch: refetchFilters,
   } = useProductFiltersState();
-  const debouncedCustomerName = useDebouncedValue(filters?.customerName ?? "", 400);
-  const debouncedJewelryName = useDebouncedValue(filters?.jewelryName ?? "", 400);
-
   const queryFilters = useMemo(
-    () =>
-      filters
-        ? toListProductsQuery({
-            ...filters,
-            customerName: debouncedCustomerName,
-            jewelryName: debouncedJewelryName,
-          })
-        : undefined,
-    [filters, debouncedCustomerName, debouncedJewelryName]
+    () => (filters ? toListProductsQuery(filters) : undefined),
+    [
+      filters?.customerName,
+      filters?.jewelryName,
+      filters?.payment,
+      filters?.month,
+      filters?.year,
+    ]
   );
 
   const {
