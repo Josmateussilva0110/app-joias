@@ -13,3 +13,13 @@ EXPO_PUBLIC_API_URL=auto
 
 # Postman / testes no PC (localhost só funciona no navegador/simulador iOS):
 # EXPO_PUBLIC_API_URL=http://localhost:3001/api
+
+# ---------------------------------------------------------------------------
+# Push notifications (Android) — obrigatório para lembretes de aniversário
+# ---------------------------------------------------------------------------
+# 1. Crie um projeto no Firebase Console
+# 2. Adicione app Android com package: com.mateus0110.lojajoias
+# 3. Baixe google-services.json e salve como app/google-services.json
+#    (use google-services.json.example como referência)
+# 4. No Expo (expo.dev) → projeto → Credentials → FCM V1 service account key
+# 5. Gere novo APK: ./build-apk.sh --clean-prebuild

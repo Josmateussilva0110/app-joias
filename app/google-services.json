@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "270192799142",
+    "project_id": "loja-joias-ba28b",
+    "storage_bucket": "loja-joias-ba28b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:270192799142:android:2b5c5f3bf8f31d46f5b367",
+        "android_client_info": {
+          "package_name": "com.mateus0110.lojajoias"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCv1aAVGgzb1GDEbICAOFGDhrxUQ9B-l9c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

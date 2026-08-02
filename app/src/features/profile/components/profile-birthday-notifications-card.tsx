@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Text,
   TouchableOpacity,
   View,
@@ -25,6 +26,7 @@ import {
   enableBirthdayNotifications,
   getBirthdayNotificationSettings,
   isBirthdayNotificationsSupported,
+  openAppNotificationSettings,
   updateBirthdayNotificationTime,
 } from "@/services/push-notifications.service";
 
@@ -74,7 +76,23 @@ export function ProfileBirthdayNotificationsCard() {
         const result = await enableBirthdayNotifications();
 
         if (!result.success) {
-          show("error", result.message);
+          if (result.requiresSettings) {
+            Alert.alert(
+              "Notificações bloqueadas",
+              result.message,
+              [
+                { text: "Cancelar", style: "cancel" },
+                {
+                  text: "Abrir configurações",
+                  onPress: () => {
+                    void openAppNotificationSettings();
+                  },
+                },
+              ]
+            );
+          } else {
+            show("error", result.message);
+          }
           return;
         }
 

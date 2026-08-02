@@ -33,6 +33,9 @@ if (isProductionBuild && resolvedApiUrl.startsWith("http://")) {
 const allowCleartextTraffic =
   !isProductionBuild && resolvedApiUrl.startsWith("http://");
 
+const googleServicesFilePath = path.join(__dirname, "google-services.json");
+const hasGoogleServices = fs.existsSync(googleServicesFilePath);
+
 const plugins = (appJson.expo.plugins ?? []).map((plugin) => {
   if (Array.isArray(plugin) && plugin[0] === "expo-build-properties") {
     return [
@@ -57,6 +60,7 @@ module.exports = {
     ...appJson.expo.android,
     versionCode: buildMeta.versionCode,
     usesCleartextTraffic: allowCleartextTraffic,
+    ...(hasGoogleServices ? { googleServicesFile: "./google-services.json" } : {}),
   },
   plugins: [...plugins, withAndroidPreferIpv4],
   extra: {
@@ -64,5 +68,6 @@ module.exports = {
     appVersion: packageJson.version,
     versionCode: buildMeta.versionCode,
     apiUrl: resolvedApiUrl,
+    hasGoogleServices,
   },
 };

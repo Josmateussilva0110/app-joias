@@ -90,6 +90,11 @@ app/android/app/build/
 *.keystore
 .kotlin/
 
+# Firebase — chaves privadas de service account (NUNCA commitar)
+# google-services.json pode ir pro Git; contém só IDs públicos do app.
+*firebase-adminsdk*.json
+firebase-service-account*.json
+
 # Certificados e provisioning (iOS/Android)
 *.pem
 *.p8

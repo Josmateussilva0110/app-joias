@@ -1,7 +1,6 @@
 import Constants from "expo-constants";
-import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Linking, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   getNotificationSettings,
@@ -10,16 +9,36 @@ import {
   updateNotificationSettings,
 } from "@/services/notification.service";
 import {
+  BIRTHDAY_NOTIFICATION_CHANNEL_ID,
   BIRTHDAY_NOTIFICATION_DEFAULT_HOUR,
   BIRTHDAY_NOTIFICATION_DEFAULT_MINUTE,
 } from "@/features/notifications/constants/birthday-notifications.constants";
 import type { BirthdayNotificationTime } from "@/features/notifications/utils/birthday-notification-time";
 
 const PUSH_TOKEN_STORAGE_KEY = "@app:expo_push_token";
+const EXPO_PROJECT_ID = "bf241346-b604-4df1-972f-8c8fae3c9628";
 
 export type BirthdayNotificationSettings = BirthdayNotificationTime & {
   enabled: boolean;
   timezone: string;
+};
+
+export type PushNotificationPermissionResult = {
+  granted: boolean;
+  canAskAgain: boolean;
+  message?: string;
+};
+
+export type PushServiceResult = {
+  success: boolean;
+  message: string;
+  requiresSettings?: boolean;
+  token?: string;
+};
+
+type ObtainPushTokenResult = {
+  token: string | null;
+  error?: string;
 };
 
 function getDeviceTimezone() {
@@ -39,8 +58,46 @@ function getDefaultSettings(): BirthdayNotificationSettings {
   };
 }
 
+function isPhysicalDevice() {
+  if (Platform.OS === "web") {
+    return false;
+  }
+
+  return Constants.isDevice !== false;
+}
+
+function getExpoProjectId() {
+  return (
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId ??
+    EXPO_PROJECT_ID
+  );
+}
+
+function hasGoogleServicesConfigured() {
+  return Constants.expoConfig?.extra?.hasGoogleServices === true;
+}
+
+function formatPushTokenError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "Erro desconhecido ao obter token push.";
+  }
+
+  const message = error.message.trim();
+
+  if (/firebase|fcm|google/i.test(message)) {
+    return "Firebase/FCM não está configurado neste build Android.";
+  }
+
+  return message || "Erro desconhecido ao obter token push.";
+}
+
 export function isBirthdayNotificationsSupported() {
   return Platform.OS === "android" || Platform.OS === "ios";
+}
+
+export async function openAppNotificationSettings() {
+  await Linking.openSettings();
 }
 
 async function getStoredPushToken() {
@@ -56,49 +113,110 @@ async function setStoredPushToken(token: string | null) {
   await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, token);
 }
 
-export async function requestPushNotificationPermissions() {
-  if (!isBirthdayNotificationsSupported()) {
-    return { granted: false };
+async function ensureAndroidNotificationChannel() {
+  if (Platform.OS !== "android") {
+    return;
   }
 
-  if (!Device.isDevice) {
-    return { granted: false };
+  await Notifications.setNotificationChannelAsync(BIRTHDAY_NOTIFICATION_CHANNEL_ID, {
+    name: "Aniversários de clientes",
+    importance: Notifications.AndroidImportance.DEFAULT,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: "#B8954A",
+  });
+}
+
+function isPermissionGranted(status: Notifications.NotificationPermissionsStatus) {
+  return status.granted || status.status === "granted";
+}
+
+export async function requestPushNotificationPermissions(): Promise<PushNotificationPermissionResult> {
+  if (!isBirthdayNotificationsSupported()) {
+    return {
+      granted: false,
+      canAskAgain: false,
+      message: "Notificações não são suportadas nesta plataforma.",
+    };
   }
+
+  if (!isPhysicalDevice()) {
+    return {
+      granted: false,
+      canAskAgain: false,
+      message: "Push notifications exigem um celular físico (não funciona no emulador).",
+    };
+  }
+
+  await ensureAndroidNotificationChannel();
 
   const current = await Notifications.getPermissionsAsync();
 
-  if (current.granted) {
-    return { granted: true };
+  if (isPermissionGranted(current)) {
+    return { granted: true, canAskAgain: true };
   }
 
-  const requested = await Notifications.requestPermissionsAsync();
-  return { granted: requested.granted };
+  const requested = await Notifications.requestPermissionsAsync({
+    ios: {
+      allowAlert: true,
+      allowBadge: true,
+      allowSound: true,
+    },
+  });
+
+  if (isPermissionGranted(requested)) {
+    return { granted: true, canAskAgain: true };
+  }
+
+  const canAskAgain = requested.canAskAgain !== false;
+
+  return {
+    granted: false,
+    canAskAgain,
+    message: canAskAgain
+      ? "Permita notificações para receber lembretes de aniversário."
+      : "Notificações bloqueadas. Ative nas configurações do app.",
+  };
 }
 
-export async function obtainExpoPushToken() {
-  if (!Device.isDevice) {
-    return null;
+export async function obtainExpoPushToken(): Promise<ObtainPushTokenResult> {
+  if (!isPhysicalDevice()) {
+    return {
+      token: null,
+      error: "Push notifications exigem um celular físico.",
+    };
   }
 
-  const projectId =
-    Constants.expoConfig?.extra?.eas?.projectId ??
-    Constants.easConfig?.projectId;
+  const projectId = getExpoProjectId();
 
   if (!projectId) {
-    console.warn("[PushNotifications] projectId ausente no app config.");
-    return null;
+    return {
+      token: null,
+      error: "Project ID do Expo ausente no app.",
+    };
+  }
+
+  if (Platform.OS === "android" && !hasGoogleServicesConfigured()) {
+    return {
+      token: null,
+      error:
+        "Firebase não configurado neste APK. Adicione app/google-services.json e gere um novo build.",
+    };
   }
 
   try {
+    await ensureAndroidNotificationChannel();
     const token = await Notifications.getExpoPushTokenAsync({ projectId });
-    return token.data;
+    return { token: token.data };
   } catch (error) {
     console.warn("[PushNotifications] getExpoPushTokenAsync failed:", error);
-    return null;
+    return {
+      token: null,
+      error: formatPushTokenError(error),
+    };
   }
 }
 
-export async function syncPushTokenWithBackend() {
+export async function syncPushTokenWithBackend(): Promise<PushServiceResult> {
   if (!isBirthdayNotificationsSupported()) {
     return { success: false, message: "Push não suportado nesta plataforma." };
   }
@@ -108,20 +226,25 @@ export async function syncPushTokenWithBackend() {
   if (!permissions.granted) {
     return {
       success: false,
-      message: "Permita notificações para receber lembretes de aniversário.",
+      message:
+        permissions.message ??
+        "Permita notificações para receber lembretes de aniversário.",
+      requiresSettings: permissions.canAskAgain === false,
     };
   }
 
-  const token = await obtainExpoPushToken();
+  const tokenResult = await obtainExpoPushToken();
 
-  if (!token) {
+  if (!tokenResult.token) {
     return {
       success: false,
-      message: "Não foi possível obter o token push deste dispositivo.",
+      message:
+        tokenResult.error ??
+        "Não foi possível obter o token push deste dispositivo.",
     };
   }
 
-  const result = await registerPushToken(token);
+  const result = await registerPushToken(tokenResult.token);
 
   if (!result.success) {
     return {
@@ -130,12 +253,12 @@ export async function syncPushTokenWithBackend() {
     };
   }
 
-  await setStoredPushToken(token);
+  await setStoredPushToken(tokenResult.token);
 
   return {
     success: true,
     message: "Token push registrado.",
-    token,
+    token: tokenResult.token,
   };
 }
 
@@ -170,7 +293,7 @@ export async function getBirthdayNotificationSettings(): Promise<BirthdayNotific
   };
 }
 
-export async function enableBirthdayNotifications() {
+export async function enableBirthdayNotifications(): Promise<PushServiceResult> {
   if (!isBirthdayNotificationsSupported()) {
     return {
       success: false,
@@ -206,7 +329,7 @@ export async function enableBirthdayNotifications() {
   };
 }
 
-export async function disableBirthdayNotifications() {
+export async function disableBirthdayNotifications(): Promise<PushServiceResult> {
   const current = await getBirthdayNotificationSettings();
 
   const result = await updateNotificationSettings({
@@ -229,7 +352,10 @@ export async function disableBirthdayNotifications() {
   };
 }
 
-export async function updateBirthdayNotificationTime(hour: number, minute: number) {
+export async function updateBirthdayNotificationTime(
+  hour: number,
+  minute: number
+): Promise<PushServiceResult> {
   const current = await getBirthdayNotificationSettings();
 
   const result = await updateNotificationSettings({
