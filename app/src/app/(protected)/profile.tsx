@@ -4,6 +4,7 @@ import { ScreenWrapper } from "@/components/layout/screen-wrapper";
 import { ProfileUserCard } from "@/features/profile/components/profile-user-card";
 import { ProfileThemeCard } from "@/features/profile/components/profile-theme-card";
 import { ProfileBiometricCard } from "@/features/profile/components/profile-biometric-card";
+import { ProfileBirthdayNotificationsCard } from "@/features/profile/components/profile-birthday-notifications-card";
 import { ProfileLogoutButton } from "@/features/profile/components/profile-logout-button";
 import { ProfileVersionIndicator } from "@/features/profile/components/profile-version-indicator";
 
@@ -23,6 +24,7 @@ export default function ProfileScreen() {
           <ProfileUserCard />
           <ProfileThemeCard />
           <ProfileBiometricCard />
+          <ProfileBirthdayNotificationsCard />
           <ProfileLogoutButton />
           <ProfileVersionIndicator />
         </View>
@@ -34,6 +36,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   content: {
     width: "100%",
+    maxWidth: "100%",
     alignSelf: "center",
     gap: 20,
   },

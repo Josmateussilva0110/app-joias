@@ -18,6 +18,7 @@ import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { ListSectionHeader } from "@/components/ui/list-section-header";
 import { StaggeredEntrance } from "@/components/ui/staggered-entrance";
 import { AnimatedPressable } from "@/components/ui/animated-pressable";
+import { NotificationsHeaderButton } from "@/features/notifications/components/notifications-header-button";
 import { CustomerListItem } from "@/features/customers/components/customer-list-item";
 import { CustomersEmptyState } from "@/features/customers/components/customers-empty-state";
 import { CustomersSearch } from "@/features/customers/components/customers-search";
@@ -95,6 +96,7 @@ export default function CustomersScreen() {
 
   const headerActions = (
     <View style={styles.headerActions}>
+      <NotificationsHeaderButton />
       <AnimatedPressable
         onPress={() => router.push("/(protected)/profile")}
         style={[styles.headerButton, { backgroundColor: colors.backgroundElement }]}

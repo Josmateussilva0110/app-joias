@@ -1,6 +1,8 @@
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/context/theme.context";
+import { BirthdayNotificationsSync } from "@/features/notifications/components/birthday-notifications-sync";
+import { NotificationInboxListener } from "@/features/notifications/components/notification-inbox-listener";
 import {
   fadeTransition,
   modalTransition,
@@ -19,7 +21,10 @@ export default function ProtectedLayout() {
     withBackground(colors, options);
 
   return (
-    <Stack screenOptions={screen(pushTransition)}>
+    <>
+      <BirthdayNotificationsSync />
+      <NotificationInboxListener />
+      <Stack screenOptions={screen(pushTransition)}>
       <Stack.Screen name="home" />
       <Stack.Screen name="customers/index" />
       <Stack.Screen name="customers/new" options={screen(modalTransition)} />
@@ -29,7 +34,9 @@ export default function ProtectedLayout() {
       <Stack.Screen name="products/[id]" />
       <Stack.Screen name="products/[id]/edit" options={screen(modalTransition)} />
       <Stack.Screen name="analytics" options={screen(fadeTransition)} />
+      <Stack.Screen name="notifications" options={screen(fadeTransition)} />
       <Stack.Screen name="profile" />
     </Stack>
+    </>
   );
 }

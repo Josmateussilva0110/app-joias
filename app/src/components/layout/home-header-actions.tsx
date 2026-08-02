@@ -3,6 +3,7 @@ import { useRouter, type Href } from "expo-router";
 import { BarChart3, Settings, Users } from "lucide-react-native";
 import { useTheme } from "@/context/theme.context";
 import { AnimatedPressable } from "@/components/ui/animated-pressable";
+import { NotificationsHeaderButton } from "@/features/notifications/components/notifications-header-button";
 
 export function HomeHeaderActions() {
   const router = useRouter();
@@ -10,6 +11,8 @@ export function HomeHeaderActions() {
 
   return (
     <View style={styles.container}>
+      <NotificationsHeaderButton />
+
       <AnimatedPressable
         onPress={() => router.push("/(protected)/analytics" as Href)}
         style={[styles.button, { backgroundColor: colors.backgroundElement }]}

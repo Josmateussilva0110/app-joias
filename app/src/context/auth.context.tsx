@@ -20,6 +20,8 @@ import { registerUser, loginUser, logoutUser } from "@/services/auth.service";
 import { refreshService } from "@/services/refresh.service";
 import { tokenManager } from "@/services/token.manager";
 import { clearPersistedQueryCache } from "@/lib/query-persister";
+import { clearBirthdayNotificationsOnLogout } from "@/services/birthday-notifications.service";
+import { clearRecentNotificationsOnLogout } from "@/services/recent-notifications.service";
 import { AuthUser, type AuthData } from "@/types/auth.types";
 
 interface RegisterDTO {
@@ -74,6 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tokenManager.clearTokens();
     await removeAuth();
     await clearPersistedQueryCache();
+    await clearBirthdayNotificationsOnLogout();
+    await clearRecentNotificationsOnLogout();
     setUser(null);
     setSigned(false);
   }, []);

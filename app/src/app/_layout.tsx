@@ -1,6 +1,8 @@
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 import { useEffect } from "react";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {
@@ -25,6 +27,17 @@ import {
 SplashScreen.preventAutoHideAsync().catch(() => {
   // Splash já oculta ou indisponível (ex.: web).
 });
+
+if (Platform.OS === "android") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 const PERSIST_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
