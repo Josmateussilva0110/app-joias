@@ -16,10 +16,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.mateus0110.lojajoias",
-      "permissions": [
-        "android.permission.SCHEDULE_EXACT_ALARM"
-      ]
+      "package": "com.mateus0110.lojajoias"
     },
     "ios": {
       "bundleIdentifier": "com.mateus0110.lojajoias"

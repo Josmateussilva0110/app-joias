@@ -8,18 +8,17 @@ import {
   captureRecentNotification,
   syncRecentNotificationsFromTray,
 } from "@/services/recent-notifications.service";
-import { resyncBirthdayNotificationsIfEnabled } from "@/services/birthday-notifications.service";
 
 export function NotificationInboxListener() {
   const { signed, loading } = useAuth();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (Platform.OS !== "android" || loading || !signed) {
+    if (Platform.OS === "web" || loading || !signed) {
       return;
     }
 
-    const invalidate = () => {
+    const syncTray = () => {
       void syncRecentNotificationsFromTray().then((items) => {
         queryClient.setQueryData([RECENT_NOTIFICATIONS_KEY], items);
       });
@@ -27,34 +26,24 @@ export function NotificationInboxListener() {
 
     const receivedSubscription = Notifications.addNotificationReceivedListener(
       (notification) => {
-        void captureRecentNotification(notification).then(() => {
-          invalidate();
-
-          const data = notification.request.content.data as Record<string, unknown>;
-          if (data?.type === "customer-birthday") {
-            void resyncBirthdayNotificationsIfEnabled();
-          }
+        void captureRecentNotification(notification).then((items) => {
+          queryClient.setQueryData([RECENT_NOTIFICATIONS_KEY], items);
         });
       }
     );
 
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        void captureRecentNotification(response.notification).then(() => {
-          invalidate();
-
-          const data = response.notification.request.content.data as Record<string, unknown>;
-          if (data?.type === "customer-birthday") {
-            void resyncBirthdayNotificationsIfEnabled();
-          }
+        void captureRecentNotification(response.notification).then((items) => {
+          queryClient.setQueryData([RECENT_NOTIFICATIONS_KEY], items);
         });
       });
 
-    invalidate();
+    syncTray();
 
     const handleAppStateChange = (nextState: AppStateStatus) => {
       if (nextState === "active") {
-        invalidate();
+        syncTray();
       }
     };
 

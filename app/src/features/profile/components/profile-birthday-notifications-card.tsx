@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   Text,
   TouchableOpacity,
   View,
@@ -18,19 +17,16 @@ import {
   birthdayNotificationTimeToDate,
   dateToBirthdayNotificationTime,
   formatBirthdayNotificationTime,
+  type BirthdayNotificationTime,
 } from "@/features/notifications/utils/birthday-notification-time";
 import { useListLayout } from "@/hooks/use-list-layout";
 import {
   disableBirthdayNotifications,
   enableBirthdayNotifications,
-  getConfiguredBirthdayNotificationTime,
+  getBirthdayNotificationSettings,
   isBirthdayNotificationsSupported,
   updateBirthdayNotificationTime,
-} from "@/services/birthday-notifications.service";
-import {
-  isBirthdayNotificationsEnabled,
-  type BirthdayNotificationTime,
-} from "@/storage/birthday-notifications.storage";
+} from "@/services/push-notifications.service";
 
 export function ProfileBirthdayNotificationsCard() {
   const { colors } = useTheme();
@@ -51,13 +47,12 @@ export function ProfileBirthdayNotificationsCard() {
     setIsLoading(true);
 
     try {
-      const [enabled, time] = await Promise.all([
-        isBirthdayNotificationsEnabled(),
-        getConfiguredBirthdayNotificationTime(),
-      ]);
-
-      setIsEnabled(enabled);
-      setNotificationTime(time);
+      const settings = await getBirthdayNotificationSettings();
+      setIsEnabled(settings.enabled);
+      setNotificationTime({
+        hour: settings.hour,
+        minute: settings.minute,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -88,9 +83,15 @@ export function ProfileBirthdayNotificationsCard() {
         return;
       }
 
-      await disableBirthdayNotifications();
+      const result = await disableBirthdayNotifications();
+
+      if (!result.success) {
+        show("error", result.message);
+        return;
+      }
+
       setIsEnabled(false);
-      show("success", "Lembretes de aniversário desativados.");
+      show("success", result.message);
     } finally {
       setIsUpdating(false);
     }
@@ -131,10 +132,6 @@ export function ProfileBirthdayNotificationsCard() {
       setIsUpdating(false);
     }
   };
-
-  if (Platform.OS !== "android") {
-    return null;
-  }
 
   if (!isBirthdayNotificationsSupported()) {
     return null;

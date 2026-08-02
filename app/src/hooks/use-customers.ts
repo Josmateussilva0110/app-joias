@@ -21,7 +21,6 @@ import {
   updateCustomer,
 } from "@/services/customer.service";
 import { PRODUCTS_KEY } from "@/hooks/use-products";
-import { resyncBirthdayNotificationsIfEnabled } from "@/services/birthday-notifications.service";
 import { useAuth } from "./useAuth";
 
 export const CUSTOMERS_KEY = "customers";
@@ -168,7 +167,6 @@ export function useCreateCustomer() {
     },
     onSuccess() {
       queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
-      void resyncBirthdayNotificationsIfEnabled();
     },
   });
 }
@@ -193,7 +191,6 @@ export function useUpdateCustomer(customerId: string) {
       queryClient.invalidateQueries({ queryKey: customerDetailKey(customerId) });
       queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
-      void resyncBirthdayNotificationsIfEnabled();
     },
   });
 }
@@ -216,7 +213,6 @@ export function useDeleteCustomer() {
       queryClient.removeQueries({ queryKey: customerDetailKey(customerId) });
       queryClient.invalidateQueries({ queryKey: [CUSTOMERS_KEY] });
       queryClient.invalidateQueries({ queryKey: [PRODUCTS_KEY] });
-      void resyncBirthdayNotificationsIfEnabled();
     },
   });
 }

@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Bell } from "lucide-react-native";
 import { AppShell } from "@/components/appShell";
 import { ScreenWrapper } from "@/components/layout/screen-wrapper";
@@ -20,20 +20,15 @@ export default function NotificationsScreen() {
   const { colors } = useTheme();
   const { horizontalPadding, isCompact } = useListLayout();
   const styles = useMemo(() => createStyles(colors, isCompact), [colors, isCompact]);
-  const { refresh, dismissOne, dismissAll } = useRecentNotificationsActions();
+  const { dismissOne, dismissAll } = useRecentNotificationsActions();
 
   const {
     data: notifications = [],
     isLoading,
     isError,
     error,
+    refetch,
   } = useRecentNotifications();
-
-  useFocusEffect(
-    useCallback(() => {
-      void refresh();
-    }, [refresh])
-  );
 
   const handlePressItem = useCallback(
     (item: RecentNotification) => {
@@ -71,7 +66,7 @@ export default function NotificationsScreen() {
       <AppShell title="Notificações" subtitle="Recentes" showBack>
         <ErrorState
           error={error?.message ?? "Não foi possível carregar as notificações."}
-          onRetry={() => refresh()}
+          onRetry={() => void refetch()}
         />
       </AppShell>
     );

@@ -1,5 +1,5 @@
 import { env } from "./config/env"
-import { bootstrapInfrastructure, closeRedis } from "./bootstrap"
+import { bootstrapInfrastructure, shutdownInfrastructure } from "./bootstrap"
 
 async function main(): Promise<void> {
   await bootstrapInfrastructure()
@@ -14,7 +14,7 @@ async function main(): Promise<void> {
   function shutdown(signal: string): void {
     console.log(`${signal} recebido — encerrando servidor...`)
     server.close(async () => {
-      await closeRedis()
+      await shutdownInfrastructure()
       console.log("Servidor encerrado.")
       process.exit(0)
     })

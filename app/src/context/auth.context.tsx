@@ -20,7 +20,7 @@ import { registerUser, loginUser, logoutUser } from "@/services/auth.service";
 import { refreshService } from "@/services/refresh.service";
 import { tokenManager } from "@/services/token.manager";
 import { clearPersistedQueryCache } from "@/lib/query-persister";
-import { clearBirthdayNotificationsOnLogout } from "@/services/birthday-notifications.service";
+import { clearBirthdayNotificationsOnLogout } from "@/services/push-notifications.service";
 import { clearRecentNotificationsOnLogout } from "@/services/recent-notifications.service";
 import { AuthUser, type AuthData } from "@/types/auth.types";
 

@@ -28,7 +28,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
   // Splash já oculta ou indisponível (ex.: web).
 });
 
-if (Platform.OS === "android") {
+if (Platform.OS !== "web") {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,

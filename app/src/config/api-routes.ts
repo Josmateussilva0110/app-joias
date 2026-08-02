@@ -16,3 +16,8 @@ export const CUSTOMER_ROUTES = {
   list: "/customers",
   create: "/customers",
 } as const;
+
+export const NOTIFICATION_ROUTES = {
+  registerToken: "/notifications/register-token",
+  settings: "/notifications/settings",
+} as const;

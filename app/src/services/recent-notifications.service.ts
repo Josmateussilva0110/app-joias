@@ -4,6 +4,7 @@ import {
   addRecentNotification,
   clearRecentNotifications,
   getRecentNotifications,
+  mergeRecentNotifications,
   removeRecentNotification,
   type RecentNotification,
 } from "@/storage/recent-notifications.storage";
@@ -39,7 +40,7 @@ export async function captureRecentNotification(
 }
 
 export async function syncRecentNotificationsFromTray() {
-  if (Platform.OS !== "android") {
+  if (Platform.OS === "web") {
     return listRecentNotifications();
   }
 
@@ -50,9 +51,11 @@ export async function syncRecentNotificationsFromTray() {
   try {
     const presented = await Notifications.getPresentedNotificationsAsync();
 
-    for (const notification of presented) {
-      await captureRecentNotification(notification);
+    if (presented.length === 0) {
+      return listRecentNotifications();
     }
+
+    return mergeRecentNotifications(presented.map(mapExpoNotification));
   } catch (error) {
     console.warn("[RecentNotifications] sync tray failed:", error);
   }
@@ -80,7 +83,7 @@ export async function dismissRecentNotification(notificationId: string) {
 
 export async function clearAllRecentNotifications() {
   if (
-    Platform.OS === "android" &&
+    Platform.OS !== "web" &&
     typeof Notifications.dismissAllNotificationsAsync === "function"
   ) {
     try {
