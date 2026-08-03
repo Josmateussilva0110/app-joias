@@ -14,4 +14,5 @@ export const userErrorHttpStatusMap: Record<UserErrorCode, number> = {
   [UserErrorCode.INVALID_CREDENTIALS]: 401, // Unauthorized
   [UserErrorCode.SESSION_REVOKED]: 401,
   [UserErrorCode.LOGOUT_FAILED]: 500,
+  [UserErrorCode.PASSWORD_RESET_REQUEST_FAILED]: 500,
 }

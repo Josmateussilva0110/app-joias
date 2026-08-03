@@ -57,3 +57,54 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .max(128, "A senha é muito longa")
+      .optional(),
+    newPassword: passwordComplexity,
+    confirmPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export const profileChangePasswordSchema = z
+  .object({
+    currentPassword: z
+      .string()
+      .min(1, "Informe a senha atual")
+      .max(128, "A senha é muito longa"),
+    newPassword: passwordComplexity,
+    confirmPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export const requiredChangePasswordSchema = z
+  .object({
+    newPassword: passwordComplexity,
+    confirmPassword: z.string().min(1, "Confirme a nova senha"),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  });
+
+export const passwordResetRequestSchema = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .min(1, "Informe seu e-mail")
+    .email("Digite um e-mail válido"),
+});
+
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+export type ProfileChangePasswordFormData = z.infer<typeof profileChangePasswordSchema>;
+export type RequiredChangePasswordFormData = z.infer<typeof requiredChangePasswordSchema>;
+export type PasswordResetRequestFormData = z.infer<typeof passwordResetRequestSchema>;

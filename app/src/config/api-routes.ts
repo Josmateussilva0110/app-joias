@@ -3,6 +3,12 @@ export const AUTH_ROUTES = {
   login: "/login",
   register: "/register",
   logout: "/logout",
+  passwordResetRequest: "/auth/password-reset-request",
+} as const;
+
+export const PROFILE_ROUTES = {
+  profile: "/profile",
+  password: "/profile/password",
 } as const;
 
 export const PRODUCT_ROUTES = {

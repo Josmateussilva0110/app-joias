@@ -3,6 +3,8 @@ import {
   getProfile,
   updateProfile,
   updateEarningsPercent,
+  changePassword,
+  type ChangePasswordData,
   type UpdateEarningsPercentData,
   type UpdateProfileData,
   type UserProfile,
@@ -91,6 +93,31 @@ export function useUpdateEarningsPercent() {
   return useMutation<UserProfile, QueryError, UpdateEarningsPercentData>({
     mutationFn: async (data) => {
       const res = await updateEarningsPercent(data);
+
+      if (!res.success) {
+        const error = new Error(res.message) as QueryError;
+
+        error.status = res.error?.status;
+        error.reason = res.error?.reason;
+
+        throw error;
+      }
+
+      return res.data as UserProfile;
+    },
+
+    onSuccess(updatedProfile) {
+      queryClient.setQueryData(PROFILE_KEY, updatedProfile);
+    },
+  });
+}
+
+export function useChangePassword() {
+  const queryClient = useQueryClient();
+
+  return useMutation<UserProfile, QueryError, ChangePasswordData>({
+    mutationFn: async (data) => {
+      const res = await changePassword(data);
 
       if (!res.success) {
         const error = new Error(res.message) as QueryError;

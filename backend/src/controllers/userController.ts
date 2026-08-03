@@ -162,6 +162,51 @@ class UserController {
     })
   }
 
+  async changePassword(request: Request, response: Response): Promise<Response> {
+    const result = await UserService.changePassword(
+      getAccessToken(request),
+      request.body
+    )
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message: "Senha atualizada com sucesso.",
+      data: result.data,
+    })
+  }
+
+  async requestPasswordReset(request: Request, response: Response): Promise<Response> {
+    const result = await UserService.requestPasswordReset(request.body)
+
+    if (!result.status) {
+      const httpStatus = getHttpStatusFromError(
+        result.error.code,
+        userErrorHttpStatusMap
+      )
+      return response.status(httpStatus).json({
+        success: false,
+        message: result.error.message,
+      })
+    }
+
+    return response.status(200).json({
+      success: true,
+      message:
+        "Solicitação enviada. Nossa equipe vai entrar em contato para confirmar sua identidade e liberar o acesso.",
+    })
+  }
+
 }
 
 export default new UserController()

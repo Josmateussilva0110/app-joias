@@ -5,6 +5,8 @@ import { UserErrorCode } from "../types/code/userCode"
 import { AuthTokens } from "../types/auth/auth.types"
 import { UserProfile } from "../types/users/profile"
 import { RegisterDTO } from "../types/users/register"
+import { ChangePasswordDTO } from "../schemas/changePasswordSchema"
+import { PasswordResetRequestDTO } from "../schemas/passwordResetRequestSchema"
 import { getUserIdFromAccessToken } from "../utils/accessToken"
 import { isRefreshTokenReuseOrRevoked } from "../utils/authErrors"
 import { buildAuthTokens } from "../utils/authSession"
@@ -313,6 +315,159 @@ class UserService {
                 error: {
                     code: UserErrorCode.USER_UPDATE_FAILED,
                     message: "Erro ao salvar o percentual de ganho.",
+                },
+            }
+        }
+    }
+
+    async changePassword(
+        accessToken: string,
+        payload: ChangePasswordDTO
+    ): Promise<ServiceResult<UserProfile, UserErrorCode>> {
+        try {
+            const userId = getUserIdFromAccessToken(accessToken)
+
+            if (!userId) {
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_UPDATE_FAILED,
+                        message: "Sessão inválida.",
+                    },
+                }
+            }
+
+            const supabase = createSupabaseClientForUser(accessToken)
+
+            const { data: profileRow, error: profileError } = await supabase
+                .from("users")
+                .select(USER_PROFILE_SELECT)
+                .eq("id", userId)
+                .single()
+
+            if (profileError || !profileRow) {
+                console.error("[UserService.changePassword] profile fetch failed:", profileError)
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_NOT_FOUND,
+                        message: "Usuário não encontrado.",
+                    },
+                }
+            }
+
+            const mustChangePassword = profileRow.must_change_password === true
+
+            if (!mustChangePassword) {
+                if (!payload.current_password) {
+                    return {
+                        status: false,
+                        error: {
+                            code: UserErrorCode.INVALID_PASSWORD,
+                            message: "Informe a senha atual.",
+                        },
+                    }
+                }
+
+                const { error: reauthError } = await supabaseAuth.auth.signInWithPassword({
+                    email: profileRow.email,
+                    password: payload.current_password,
+                })
+
+                if (reauthError) {
+                    return {
+                        status: false,
+                        error: {
+                            code: UserErrorCode.INVALID_CREDENTIALS,
+                            message: "Senha atual incorreta.",
+                        },
+                    }
+                }
+            }
+
+            const { error: updateError } = await supabase.auth.updateUser({
+                password: payload.new_password,
+            })
+
+            if (updateError) {
+                console.error("[UserService.changePassword] update failed:", updateError)
+                return {
+                    status: false,
+                    error: {
+                        code: UserErrorCode.USER_UPDATE_FAILED,
+                        message: "Não foi possível atualizar a senha.",
+                    },
+                }
+            }
+
+            if (mustChangePassword) {
+                const { error: flagError } = await supabaseAdmin
+                    .from("users")
+                    .update({ must_change_password: false })
+                    .eq("id", userId)
+
+                if (flagError) {
+                    console.error("[UserService.changePassword] flag update failed:", flagError)
+                }
+            }
+
+            return this.getProfile(accessToken)
+        } catch (error) {
+            console.error("[UserService.changePassword] error:", error)
+            return {
+                status: false,
+                error: {
+                    code: UserErrorCode.USER_UPDATE_FAILED,
+                    message: "Não foi possível atualizar a senha.",
+                },
+            }
+        }
+    }
+
+    async requestPasswordReset(
+        payload: PasswordResetRequestDTO
+    ): Promise<ServiceResult<{ accepted: true }, UserErrorCode>> {
+        try {
+            const identifier = payload.identifier.trim().toLowerCase()
+
+            const { data: userRow } = await supabaseAdmin
+                .from("users")
+                .select("id")
+                .eq("email", identifier)
+                .maybeSingle()
+
+            if (userRow?.id) {
+                const { error: insertError } = await supabaseAdmin
+                    .from("password_reset_requests")
+                    .insert({
+                        user_id: userRow.id,
+                        identifier,
+                        status: "pending",
+                    })
+
+                if (insertError) {
+                    console.error("[UserService.requestPasswordReset] insert failed:", insertError)
+                    return {
+                        status: false,
+                        error: {
+                            code: UserErrorCode.PASSWORD_RESET_REQUEST_FAILED,
+                            message: "Não foi possível registrar a solicitação.",
+                        },
+                    }
+                }
+            }
+
+            return {
+                status: true,
+                data: { accepted: true },
+            }
+        } catch (error) {
+            console.error("[UserService.requestPasswordReset] error:", error)
+            return {
+                status: false,
+                error: {
+                    code: UserErrorCode.PASSWORD_RESET_REQUEST_FAILED,
+                    message: "Não foi possível registrar a solicitação.",
                 },
             }
         }

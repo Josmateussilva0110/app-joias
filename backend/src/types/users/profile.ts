@@ -3,4 +3,5 @@ export interface UserProfile {
     username: string
     email: string
     earnings_percent: number
+    must_change_password: boolean
 }

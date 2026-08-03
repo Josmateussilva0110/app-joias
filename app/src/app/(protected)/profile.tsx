@@ -5,6 +5,7 @@ import { ProfileUserCard } from "@/features/profile/components/profile-user-card
 import { ProfileThemeCard } from "@/features/profile/components/profile-theme-card";
 import { ProfileBiometricCard } from "@/features/profile/components/profile-biometric-card";
 import { ProfileBirthdayNotificationsCard } from "@/features/profile/components/profile-birthday-notifications-card";
+import { ProfileChangePasswordCard } from "@/features/profile/components/profile-change-password-card";
 import { ProfileLogoutButton } from "@/features/profile/components/profile-logout-button";
 import { ProfileVersionIndicator } from "@/features/profile/components/profile-version-indicator";
 
@@ -25,6 +26,7 @@ export default function ProfileScreen() {
           <ProfileThemeCard />
           <ProfileBiometricCard />
           <ProfileBirthdayNotificationsCard />
+          <ProfileChangePasswordCard />
           <ProfileLogoutButton />
           <ProfileVersionIndicator />
         </View>
