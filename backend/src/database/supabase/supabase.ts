@@ -22,6 +22,11 @@ export const supabaseAuth = createClient(
     clientOptions
 )
 
+/** Cliente isolado por requisição — login, reauth e updateUser de senha. */
+export function createEphemeralAuthClient() {
+    return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, clientOptions)
+}
+
 /** Respeita RLS — use com o access token do usuário autenticado. */
 export function createSupabaseClientForUser(accessToken: string) {
     return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {

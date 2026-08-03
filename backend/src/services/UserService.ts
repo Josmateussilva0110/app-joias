@@ -1,4 +1,4 @@
-import { supabaseAuth, supabaseAdmin, createSupabaseClientForUser } from "../database/supabase/supabase"
+import { supabaseAuth, supabaseAdmin, createSupabaseClientForUser, createEphemeralAuthClient } from "../database/supabase/supabase"
 import { USER_PROFILE_SELECT } from "../constants/user.constants"
 import { ServiceResult } from "../types/serviceResults/ServiceResult"
 import { UserErrorCode } from "../types/code/userCode"
@@ -12,6 +12,20 @@ import { isRefreshTokenReuseOrRevoked } from "../utils/authErrors"
 import { buildAuthTokens } from "../utils/authSession"
 import { mapUserProfileRow } from "../utils/userProfile"
 import { revokeAccessToken, revokeUserSessions } from "../utils/tokenRevocation"
+
+function mapPasswordUpdateError(message: string | undefined): string {
+    const normalized = (message ?? "").toLowerCase()
+
+    if (normalized.includes("different from the old password")) {
+        return "A nova senha deve ser diferente da senha atual."
+    }
+
+    if (normalized.includes("should be at least") || normalized.includes("weak")) {
+        return "A nova senha não atende aos requisitos de segurança."
+    }
+
+    return "Não foi possível atualizar a senha."
+}
 
 class UserService {
     async register(data: RegisterDTO): Promise<ServiceResult<{ id: string }, UserErrorCode>> {
@@ -369,12 +383,15 @@ class UserService {
                     }
                 }
 
-                const { error: reauthError } = await supabaseAuth.auth.signInWithPassword({
-                    email: profileRow.email,
-                    password: payload.current_password,
-                })
+                const authClient = createEphemeralAuthClient()
 
-                if (reauthError) {
+                const { data: reauthData, error: reauthError } =
+                    await authClient.auth.signInWithPassword({
+                        email: profileRow.email,
+                        password: payload.current_password,
+                    })
+
+                if (reauthError || !reauthData.session) {
                     return {
                         status: false,
                         error: {
@@ -383,20 +400,36 @@ class UserService {
                         },
                     }
                 }
-            }
 
-            const { error: updateError } = await supabase.auth.updateUser({
-                password: payload.new_password,
-            })
+                const { error: updateError } = await authClient.auth.updateUser({
+                    password: payload.new_password,
+                })
 
-            if (updateError) {
-                console.error("[UserService.changePassword] update failed:", updateError)
-                return {
-                    status: false,
-                    error: {
-                        code: UserErrorCode.USER_UPDATE_FAILED,
-                        message: "Não foi possível atualizar a senha.",
-                    },
+                if (updateError) {
+                    console.error("[UserService.changePassword] update failed:", updateError)
+                    return {
+                        status: false,
+                        error: {
+                            code: UserErrorCode.USER_UPDATE_FAILED,
+                            message: mapPasswordUpdateError(updateError.message),
+                        },
+                    }
+                }
+            } else {
+                const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                    userId,
+                    { password: payload.new_password }
+                )
+
+                if (updateError) {
+                    console.error("[UserService.changePassword] admin update failed:", updateError)
+                    return {
+                        status: false,
+                        error: {
+                            code: UserErrorCode.USER_UPDATE_FAILED,
+                            message: mapPasswordUpdateError(updateError.message),
+                        },
+                    }
                 }
             }
 
