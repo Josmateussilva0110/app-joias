@@ -18,12 +18,14 @@ type ProductsFiltersProps = {
   filters: ProductFilters;
   filterOptions: ProductFilterOptions;
   onChange: (filters: ProductFilters) => void;
+  variant?: "default" | "dock";
 };
 
 export function ProductsFilters({
   filters,
   filterOptions,
   onChange,
+  variant = "default",
 }: ProductsFiltersProps) {
   const { isTablet } = useListLayout();
   const paymentOptions = filterOptions.payments;
@@ -64,9 +66,10 @@ export function ProductsFilters({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, variant === "dock" && styles.containerDock]}>
       <View style={[styles.searchRow, isTablet && styles.searchRowTablet]}>
         <SearchBar
+          variant={variant}
           style={isTablet ? styles.searchField : undefined}
           value={customerDraft}
           onChange={setCustomerDraft}
@@ -74,6 +77,7 @@ export function ProductsFilters({
           placeholder="Buscar cliente"
         />
         <SearchBar
+          variant={variant}
           style={isTablet ? styles.searchField : undefined}
           value={jewelryDraft}
           onChange={setJewelryDraft}
@@ -84,9 +88,10 @@ export function ProductsFilters({
         />
       </View>
 
-      <FilterChipRow>
+      <FilterChipRow variant={variant}>
         <FilterChip
           label="Pagamento"
+          variant={variant}
           value={filters.payment}
           options={paymentOptions}
           onChange={(payment) =>
@@ -99,6 +104,7 @@ export function ProductsFilters({
 
         <FilterChip
           label="Mês"
+          variant={variant}
           value={toMonthFilterValue(filters.month)}
           options={monthOptions}
           onChange={(value) =>
@@ -109,6 +115,7 @@ export function ProductsFilters({
 
         <FilterChip
           label="Ano"
+          variant={variant}
           value={toYearFilterValue(filters.year)}
           options={yearOptions}
           onChange={(value) =>
@@ -127,6 +134,9 @@ export function ProductsFilters({
 const styles = StyleSheet.create({
   container: {
     gap: 8,
+  },
+  containerDock: {
+    gap: 10,
   },
   searchRow: {
     gap: 8,

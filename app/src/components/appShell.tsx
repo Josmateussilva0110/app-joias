@@ -11,18 +11,18 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Settings, ArrowLeft } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { useTheme } from "@/context/theme.context";
 import { AnimatedPressable } from "@/components/ui/animated-pressable";
 import { MOTION } from "@/components/ui/motion";
+import { AppHeaderActions } from "@/components/layout/app-header-actions";
 
 type AppShellProps = {
   title: string;
   subtitle?: string;
   children: ReactNode;
   rightElement?: ReactNode;
-  showSettings?: boolean;
   showBack?: boolean;
 };
 
@@ -31,29 +31,18 @@ export function AppShell({
   subtitle,
   children,
   rightElement,
-  showSettings = false,
   showBack = false,
 }: AppShellProps): React.JSX.Element {
   const { colors: theme } = useTheme();
   const router = useRouter();
 
-  const defaultActions =
-    showSettings ? (
-      <View style={styles.headerActions}>
-        <AnimatedPressable
-          onPress={() => router.push("/(protected)/profile")}
-          style={[styles.settingsButton, { backgroundColor: theme.backgroundElement }]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Settings size={18} color={theme.textSecondary} />
-        </AnimatedPressable>
-      </View>
-    ) : null;
-
-  const headerRight = rightElement ?? defaultActions;
+  const headerRight = rightElement ?? <AppHeaderActions />;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.shellBackground }]}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={[styles.container, { backgroundColor: theme.shellBackground }]}
+    >
       <StatusBar
         barStyle={theme.statusBarStyle}
         backgroundColor={theme.shellBackground}
@@ -140,20 +129,6 @@ const styles = StyleSheet.create({
   headerRight: {
     marginLeft: 12,
     paddingTop: 4,
-  },
-
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-
-  settingsButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   title: {

@@ -24,6 +24,7 @@ type FilterChipProps<T extends string> = {
   options: FilterChipOption<T>[];
   onChange: (value: T) => void;
   active?: boolean;
+  variant?: "default" | "dock";
 };
 
 export function FilterChip<T extends string>({
@@ -32,10 +33,11 @@ export function FilterChip<T extends string>({
   options,
   onChange,
   active = false,
+  variant = "default",
 }: FilterChipProps<T>) {
   const { colors } = useTheme();
   const { isCompact } = useListLayout();
-  const styles = createStyles(colors, isCompact);
+  const styles = createStyles(colors, isCompact, variant);
   const [open, setOpen] = useState(false);
 
   const selectedLabel =
@@ -47,8 +49,16 @@ export function FilterChip<T extends string>({
         onPress={() => setOpen(true)}
         style={[styles.chip, active && styles.chipActive]}
       >
-        <Text style={styles.chipLabel}>{label}</Text>
-        <Text style={styles.chipValue}>{selectedLabel}</Text>
+        {variant === "dock" ? (
+          <Text style={[styles.chipValue, active && styles.chipValueActive]}>
+            {selectedLabel}
+          </Text>
+        ) : (
+          <>
+            <Text style={styles.chipLabel}>{label}</Text>
+            <Text style={styles.chipValue}>{selectedLabel}</Text>
+          </>
+        )}
       </AnimatedPressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -85,14 +95,18 @@ export function FilterChip<T extends string>({
 
 type FilterChipRowProps = {
   children: ReactNode;
+  variant?: "default" | "dock";
 };
 
-export function FilterChipRow({ children }: FilterChipRowProps) {
+export function FilterChipRow({ children, variant = "default" }: FilterChipRowProps) {
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={stylesRow.content}
+      contentContainerStyle={[
+        stylesRow.content,
+        variant === "dock" && stylesRow.contentDock,
+      ]}
     >
       {children}
     </ScrollView>
@@ -104,24 +118,36 @@ const stylesRow = StyleSheet.create({
     gap: 8,
     paddingVertical: 2,
   },
+  contentDock: {
+    gap: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
 });
 
-const createStyles = (colors: ThemeColors, isCompact: boolean) =>
+const createStyles = (
+  colors: ThemeColors,
+  isCompact: boolean,
+  variant: "default" | "dock"
+) =>
   StyleSheet.create({
     chip: {
       flexDirection: "row",
       alignItems: "center",
       gap: isCompact ? 4 : 6,
-      paddingHorizontal: isCompact ? 10 : 12,
-      paddingVertical: isCompact ? 6 : 7,
+      paddingHorizontal:
+        variant === "dock" ? (isCompact ? 14 : 16) : isCompact ? 10 : 12,
+      paddingVertical:
+        variant === "dock" ? (isCompact ? 9 : 10) : isCompact ? 6 : 7,
       borderRadius: 999,
-      borderWidth: 1,
-      backgroundColor: colors.backgroundElement,
+      borderWidth: variant === "dock" ? 0 : 1,
+      backgroundColor:
+        variant === "dock" ? colors.backgroundElement : colors.backgroundElement,
       borderColor: colors.filterChipBorder,
     },
     chipActive: {
-      backgroundColor: colors.primaryMuted,
-      borderColor: `${colors.primary}50`,
+      backgroundColor: variant === "dock" ? colors.primary : colors.primaryMuted,
+      borderColor: variant === "dock" ? colors.primary : `${colors.primary}50`,
     },
     chipLabel: {
       fontSize: isCompact ? 10 : 11,
@@ -131,9 +157,13 @@ const createStyles = (colors: ThemeColors, isCompact: boolean) =>
       letterSpacing: 0.3,
     },
     chipValue: {
-      fontSize: isCompact ? 12 : 13,
-      fontWeight: "600",
+      fontSize: variant === "dock" ? (isCompact ? 13 : 14) : isCompact ? 12 : 13,
+      fontWeight: variant === "dock" ? "600" : "600",
       color: colors.text,
+    },
+    chipValueActive: {
+      color: colors.filterChipActiveText,
+      fontWeight: "700",
     },
     overlay: {
       flex: 1,

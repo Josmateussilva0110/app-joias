@@ -8,17 +8,15 @@ import {
   Text,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Plus, Settings } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Plus } from "lucide-react-native";
 import { CustomerResponse } from "@app/shared";
 import { AppShell } from "@/components/appShell";
+import { HomeBottomNav, BOTTOM_NAV_FAB_CLEARANCE } from "@/components/layout/home-bottom-nav";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { ListSectionHeader } from "@/components/ui/list-section-header";
 import { StaggeredEntrance } from "@/components/ui/staggered-entrance";
-import { AnimatedPressable } from "@/components/ui/animated-pressable";
-import { NotificationsHeaderButton } from "@/features/notifications/components/notifications-header-button";
 import { CustomerListItem } from "@/features/customers/components/customer-list-item";
 import { CustomersEmptyState } from "@/features/customers/components/customers-empty-state";
 import { CustomersSearch } from "@/features/customers/components/customers-search";
@@ -32,12 +30,12 @@ import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 export default function CustomersScreen() {
   const router = useRouter();
   const { horizontalPadding, contentMaxWidth, isCompact } = useListLayout();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(isCompact), [isCompact]);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [animateItems, setAnimateItems] = useState(true);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(52);
 
   const listFilters = useMemo(
     () => (searchQuery.trim() ? { name: searchQuery.trim() } : undefined),
@@ -58,13 +56,9 @@ export default function CustomersScreen() {
 
   useEffect(() => {
     if (!animateItems) return;
-    const timer = setTimeout(() => setAnimateItems(false), 1200);
+    const timer = setTimeout(() => setAnimateItems(false), 800);
     return () => clearTimeout(timer);
   }, [animateItems]);
-
-  useEffect(() => {
-    setAnimateItems(true);
-  }, [listFilters]);
 
   const firstPage = data?.pages?.[0];
   const allCustomers = useMemo(
@@ -94,21 +88,9 @@ export default function CustomersScreen() {
     });
   };
 
-  const headerActions = (
-    <View style={styles.headerActions}>
-      <NotificationsHeaderButton />
-      <AnimatedPressable
-        onPress={() => router.push("/(protected)/profile")}
-        style={[styles.headerButton, { backgroundColor: colors.backgroundElement }]}
-      >
-        <Settings size={18} color={colors.textSecondary} />
-      </AnimatedPressable>
-    </View>
-  );
-
   if (isInitialLoading) {
     return (
-      <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
+      <AppShell title="Clientes" subtitle={APP_NAME}>
         <LoadingState message="Carregando clientes..." />
       </AppShell>
     );
@@ -116,7 +98,7 @@ export default function CustomersScreen() {
 
   if (isError && !data) {
     return (
-      <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
+      <AppShell title="Clientes" subtitle={APP_NAME}>
         <ErrorState
           error={error?.message ?? "Não foi possível carregar os clientes."}
           onRetry={() => refetch()}
@@ -126,10 +108,11 @@ export default function CustomersScreen() {
   }
 
   return (
-    <AppShell title="Clientes" subtitle={APP_NAME} showBack rightElement={headerActions}>
+    <AppShell title="Clientes" subtitle={APP_NAME}>
       <View style={[styles.container, contentMaxWidth != null && styles.containerCentered]}>
         <View style={[styles.listWrap, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>
           <SectionList
+            style={styles.list}
             sections={customerSections}
             keyExtractor={(item) => item.id}
             renderSectionHeader={({ section: { title, data: sectionData } }) => (
@@ -148,7 +131,7 @@ export default function CustomersScreen() {
               styles.listContent,
               {
                 paddingHorizontal: horizontalPadding,
-                paddingBottom: 120 + insets.bottom,
+                paddingBottom: bottomPanelHeight + BOTTOM_NAV_FAB_CLEARANCE,
               },
               allCustomers.length === 0 && styles.listContentEmpty,
             ]}
@@ -208,9 +191,14 @@ export default function CustomersScreen() {
           />
 
           <FloatingActionButton
-            bottom={24 + insets.bottom}
+            bottom={bottomPanelHeight + 12}
             onPress={() => router.push("/(protected)/customers/new")}
             icon={<Plus size={28} color={colors.onPrimary} strokeWidth={2.5} />}
+          />
+
+          <HomeBottomNav
+            style={styles.bottomNav}
+            onLayoutHeight={setBottomPanelHeight}
           />
         </View>
       </View>
@@ -230,6 +218,15 @@ const createStyles = (isCompact: boolean) =>
       flex: 1,
       width: "100%",
     },
+    bottomNav: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    list: {
+      flex: 1,
+    },
     header: {
       paddingTop: isCompact ? 10 : 12,
       paddingBottom: 8,
@@ -248,18 +245,6 @@ const createStyles = (isCompact: boolean) =>
       fontSize: 13,
       fontWeight: "600",
       textAlign: "center",
-    },
-    headerActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-    headerButton: {
-      width: 36,
-      height: 36,
-      borderRadius: 12,
-      alignItems: "center",
-      justifyContent: "center",
     },
     listContent: {
       flexGrow: 1,

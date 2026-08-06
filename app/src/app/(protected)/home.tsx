@@ -9,9 +9,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Plus, Gem } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppShell } from "@/components/appShell";
-import { HomeHeaderActions } from "@/components/layout/home-header-actions";
+import { HomeBottomNav, BOTTOM_NAV_FAB_CLEARANCE } from "@/components/layout/home-bottom-nav";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
@@ -32,10 +31,10 @@ import { APP_NAME } from "@/features/welcome/constants/welcome-constants";
 export default function HomeScreen() {
   const router = useRouter();
   const { horizontalPadding, contentMaxWidth, isCompact } = useListLayout();
-  const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors, isCompact), [colors, isCompact]);
   const [animateItems, setAnimateItems] = useState(true);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(52);
   const {
     filters,
     setFilters,
@@ -90,13 +89,9 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (!animateItems) return;
-    const timer = setTimeout(() => setAnimateItems(false), 1200);
+    const timer = setTimeout(() => setAnimateItems(false), 800);
     return () => clearTimeout(timer);
   }, [animateItems]);
-
-  useEffect(() => {
-    setAnimateItems(true);
-  }, [queryFilters]);
 
   const handleEndReached = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -113,11 +108,7 @@ export default function HomeScreen() {
 
   if (isLoadingFilters || !filters || !filterOptions) {
     return (
-      <AppShell
-        title="Vendas"
-        subtitle={APP_NAME}
-        rightElement={<HomeHeaderActions />}
-      >
+      <AppShell title="Vendas" subtitle={APP_NAME}>
         <LoadingState message="Carregando filtros..." />
       </AppShell>
     );
@@ -125,11 +116,7 @@ export default function HomeScreen() {
 
   if (isFiltersError) {
     return (
-      <AppShell
-        title="Vendas"
-        subtitle={APP_NAME}
-        rightElement={<HomeHeaderActions />}
-      >
+      <AppShell title="Vendas" subtitle={APP_NAME}>
         <ErrorState
           error={filtersError?.message ?? "Não foi possível carregar os filtros."}
           onRetry={() => refetchFilters()}
@@ -140,11 +127,7 @@ export default function HomeScreen() {
 
   if (isInitialLoading) {
     return (
-      <AppShell
-        title="Vendas"
-        subtitle={APP_NAME}
-        rightElement={<HomeHeaderActions />}
-      >
+      <AppShell title="Vendas" subtitle={APP_NAME}>
         <LoadingState message="Carregando vendas..." />
       </AppShell>
     );
@@ -152,11 +135,7 @@ export default function HomeScreen() {
 
   if (isError) {
     return (
-      <AppShell
-        title="Vendas"
-        subtitle={APP_NAME}
-        rightElement={<HomeHeaderActions />}
-      >
+      <AppShell title="Vendas" subtitle={APP_NAME}>
         <ErrorState
           error={error?.message ?? "Não foi possível carregar as vendas."}
           onRetry={() => refetch()}
@@ -166,10 +145,11 @@ export default function HomeScreen() {
   }
 
   return (
-    <AppShell title="Vendas" subtitle={APP_NAME} rightElement={<HomeHeaderActions />}>
+    <AppShell title="Vendas" subtitle={APP_NAME}>
       <View style={[styles.container, contentMaxWidth != null && styles.containerCentered]}>
         <View style={[styles.listWrap, contentMaxWidth ? { maxWidth: contentMaxWidth } : null]}>
         <SectionList
+          style={styles.list}
           sections={productSections}
           keyExtractor={(item) => item.id}
           renderSectionHeader={({ section: { title, isPaid, data } }) => (
@@ -188,7 +168,7 @@ export default function HomeScreen() {
             styles.listContent,
             {
               paddingHorizontal: horizontalPadding,
-              paddingBottom: 120 + insets.bottom,
+              paddingBottom: bottomPanelHeight + BOTTOM_NAV_FAB_CLEARANCE,
             },
             !hasAnyProduct && styles.listContentEmpty,
           ]}
@@ -250,9 +230,14 @@ export default function HomeScreen() {
         />
 
         <FloatingActionButton
-          bottom={24 + insets.bottom}
+          bottom={bottomPanelHeight + 12}
           onPress={() => router.push("/(protected)/products/new")}
           icon={<Plus size={28} color={colors.onPrimary} strokeWidth={2.5} />}
+        />
+
+        <HomeBottomNav
+          style={styles.bottomNav}
+          onLayoutHeight={setBottomPanelHeight}
         />
         </View>
       </View>
@@ -271,6 +256,15 @@ const createStyles = (colors: ThemeColors, isCompact: boolean) =>
     listWrap: {
       flex: 1,
       width: "100%",
+    },
+    bottomNav: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    list: {
+      flex: 1,
     },
     listContent: {
       paddingTop: isCompact ? 10 : 12,

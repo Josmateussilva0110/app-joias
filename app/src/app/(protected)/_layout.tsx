@@ -8,6 +8,7 @@ import {
   fadeTransition,
   modalTransition,
   pushTransition,
+  tabTransition,
   withBackground,
 } from "@/constants/navigation-transitions";
 
@@ -38,15 +39,15 @@ export default function ProtectedLayout() {
       <PushTokenRegistration />
       <NotificationInboxListener />
       <Stack screenOptions={screen(pushTransition)}>
-      <Stack.Screen name="home" />
-      <Stack.Screen name="customers/index" />
+      <Stack.Screen name="home" options={screen(tabTransition)} />
+      <Stack.Screen name="customers/index" options={screen(tabTransition)} />
       <Stack.Screen name="customers/new" options={screen(modalTransition)} />
       <Stack.Screen name="customers/[id]" />
       <Stack.Screen name="customers/[id]/edit" options={screen(modalTransition)} />
       <Stack.Screen name="products/new" options={screen(modalTransition)} />
       <Stack.Screen name="products/[id]" />
       <Stack.Screen name="products/[id]/edit" options={screen(modalTransition)} />
-      <Stack.Screen name="analytics" options={screen(fadeTransition)} />
+      <Stack.Screen name="analytics" options={screen(tabTransition)} />
       <Stack.Screen name="notifications" options={screen(fadeTransition)} />
       <Stack.Screen name="profile" />
       <Stack.Screen

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { BarChart3 } from "lucide-react-native";
 import { AppShell } from "@/components/appShell";
+import { HomeBottomNav } from "@/components/layout/home-bottom-nav";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { AnalyticsDashboard } from "@/features/analytics/components/analytics-dashboard";
@@ -22,6 +23,7 @@ export default function AnalyticsScreen() {
   const { colors } = useTheme();
   const { isCompact, screenPadding } = useAnalyticsLayout();
   const styles = useMemo(() => createStyles(colors, isCompact), [colors, isCompact]);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(52);
   const {
     filters,
     setFilters,
@@ -56,7 +58,7 @@ export default function AnalyticsScreen() {
 
   if (isLoadingFilters || !filters || !filterOptions) {
     return (
-      <AppShell title="Análise" subtitle="Dashboard de vendas" showBack>
+      <AppShell title="Análise" subtitle="Dashboard de vendas">
         <LoadingState message="Carregando filtros..." />
       </AppShell>
     );
@@ -64,7 +66,7 @@ export default function AnalyticsScreen() {
 
   if (isFiltersError) {
     return (
-      <AppShell title="Análise" subtitle="Dashboard de vendas" showBack>
+      <AppShell title="Análise" subtitle="Dashboard de vendas">
         <ErrorState
           error={filtersError?.message ?? "Não foi possível carregar os filtros."}
           onRetry={() => refetchFilters()}
@@ -74,59 +76,82 @@ export default function AnalyticsScreen() {
   }
 
   return (
-    <AppShell title="Análise" subtitle="Dashboard de vendas" showBack>
-      <ScrollView
-        contentContainerStyle={[
-          styles.content,
-          { paddingHorizontal: horizontalPadding },
-        ]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={() => {
-              void refetch();
-              void refetchFilters();
-            }}
-            tintColor={colors.primary}
+    <AppShell title="Análise" subtitle="Dashboard de vendas">
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.content,
+            {
+              paddingHorizontal: horizontalPadding,
+              paddingBottom: bottomPanelHeight + 12,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => {
+                void refetch();
+                void refetchFilters();
+              }}
+              tintColor={colors.primary}
+            />
+          }
+        >
+          <ProductsFilters
+            filters={filters}
+            filterOptions={filterOptions}
+            onChange={setFilters}
           />
-        }
-      >
-        <ProductsFilters
-          filters={filters}
-          filterOptions={filterOptions}
-          onChange={setFilters}
+
+          {isLoading ? <LoadingState message="Carregando análise..." /> : null}
+
+          {isError ? (
+            <ErrorState
+              error={error?.message ?? "Não foi possível carregar a análise."}
+              onRetry={() => refetch()}
+            />
+          ) : null}
+
+          {!isLoading && !isError && data && hasData ? (
+            <AnalyticsDashboard analytics={data} />
+          ) : null}
+
+          {!isLoading && !isError && data && !hasData ? (
+            <View style={styles.emptyState}>
+              <BarChart3 size={40} color={colors.textSecondary} strokeWidth={1.5} />
+              <Text style={styles.emptyTitle}>Nenhuma venda no período</Text>
+              <Text style={styles.emptyDescription}>
+                Ajuste os filtros ou registre vendas para ver os gráficos.
+              </Text>
+            </View>
+          ) : null}
+        </ScrollView>
+
+        <HomeBottomNav
+          style={styles.bottomNav}
+          onLayoutHeight={setBottomPanelHeight}
         />
-
-        {isLoading ? <LoadingState message="Carregando análise..." /> : null}
-
-        {isError ? (
-          <ErrorState
-            error={error?.message ?? "Não foi possível carregar a análise."}
-            onRetry={() => refetch()}
-          />
-        ) : null}
-
-        {!isLoading && !isError && data && hasData ? (
-          <AnalyticsDashboard analytics={data} />
-        ) : null}
-
-        {!isLoading && !isError && data && !hasData ? (
-          <View style={styles.emptyState}>
-            <BarChart3 size={40} color={colors.textSecondary} strokeWidth={1.5} />
-            <Text style={styles.emptyTitle}>Nenhuma venda no período</Text>
-            <Text style={styles.emptyDescription}>
-              Ajuste os filtros ou registre vendas para ver os gráficos.
-            </Text>
-          </View>
-        ) : null}
-      </ScrollView>
+      </View>
     </AppShell>
   );
 }
 
 const createStyles = (colors: ThemeColors, isCompact: boolean) =>
   StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    bottomNav: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+    },
+    scroll: {
+      flex: 1,
+    },
     content: {
       paddingTop: isCompact ? 12 : 16,
       paddingBottom: 32,

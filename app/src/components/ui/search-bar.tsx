@@ -18,6 +18,7 @@ type SearchBarProps = {
   icon?: LucideIcon;
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   style?: StyleProp<ViewStyle>;
+  variant?: "default" | "dock";
 };
 
 export function SearchBar({
@@ -28,10 +29,11 @@ export function SearchBar({
   icon: Icon = Search,
   autoCapitalize = "words",
   style,
+  variant = "default",
 }: SearchBarProps) {
   const { colors } = useTheme();
   const { isCompact } = useListLayout();
-  const styles = createStyles(colors, isCompact);
+  const styles = createStyles(colors, isCompact, variant);
   const showClear = value.length > 0;
 
   const handleClear = () => {
@@ -74,20 +76,20 @@ export function SearchBar({
   );
 }
 
-const createStyles = (colors: ThemeColors, isCompact: boolean) =>
+const createStyles = (colors: ThemeColors, isCompact: boolean, variant: "default" | "dock") =>
   StyleSheet.create({
     wrap: {
       alignSelf: "stretch",
       width: "100%",
       minWidth: 0,
-      height: isCompact ? 36 : 38,
-      borderRadius: 10,
-      borderWidth: 1,
-      paddingHorizontal: isCompact ? 10 : 12,
+      height: variant === "dock" ? (isCompact ? 40 : 44) : isCompact ? 36 : 38,
+      borderRadius: variant === "dock" ? 999 : 10,
+      borderWidth: variant === "dock" ? 0 : 1,
+      paddingHorizontal: variant === "dock" ? (isCompact ? 14 : 16) : isCompact ? 10 : 12,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
-      backgroundColor: colors.background,
+      gap: variant === "dock" ? 8 : 6,
+      backgroundColor: variant === "dock" ? colors.backgroundElement : colors.background,
       borderColor: colors.backgroundSelected,
     },
     input: {

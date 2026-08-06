@@ -28,6 +28,13 @@ export const fadeTransition: NativeStackNavigationOptions = {
   animationDuration: 280,
 };
 
+/** Abas principais — fade suave ao trocar de seção. */
+export const tabTransition: NativeStackNavigationOptions = {
+  ...BASE,
+  animation: "fade",
+  animationDuration: 320,
+};
+
 export function withBackground(
   colors: { background: string },
   options: NativeStackNavigationOptions
