@@ -20,7 +20,8 @@ export function getUserIdFromAccessToken(accessToken: string): string | undefine
 
 /**
  * Emite JWT curto para o PostgREST respeitar RLS (auth.uid()).
- * Evita PGRST303 quando o iat do token do Supabase Auth está à frente do relógio do PostgREST.
+ * Sem `iat`: PostgREST só valida iat quando presente; omitir evita PGRST303
+ * quando o relógio do servidor (ex.: Belmo) está adiantado em relação ao PostgREST.
  */
 export function mintSupabaseAccessToken(userId: string): string {
   const issuer = `${env.SUPABASE_URL.replace(/\/+$/, "")}/auth/v1`
@@ -36,6 +37,7 @@ export function mintSupabaseAccessToken(userId: string): string {
     {
       algorithm: "HS256",
       expiresIn: SUPABASE_DB_JWT_TTL_SECONDS,
+      noTimestamp: true,
     }
   )
 }
