@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import {
   Platform,
   StyleSheet,
+  Text,
   useWindowDimensions,
   View,
   type StyleProp,
@@ -48,7 +49,7 @@ const TABS: TabConfig[] = [
 const ICON_TIMING = { duration: 220, easing: Easing.out(Easing.cubic) };
 
 /** Espaço extra acima do FAB flutuante. */
-export const BOTTOM_NAV_FAB_CLEARANCE = 60;
+export const BOTTOM_NAV_FAB_CLEARANCE = 68;
 
 function useBottomNavMetrics(compact: boolean) {
   const insets = useSafeAreaInsets();
@@ -58,8 +59,9 @@ function useBottomNavMetrics(compact: boolean) {
 
     return {
       iconSize: compact ? 20 : 22,
+      labelSize: compact ? 10 : 11,
       indicatorWidth: compact ? 18 : 22,
-      barHeight: compact ? 48 : 54,
+      barHeight: compact ? 56 : 62,
       paddingHorizontal: compact ? 16 : 24,
       bottomInset,
     };
@@ -68,19 +70,21 @@ function useBottomNavMetrics(compact: boolean) {
 
 type TabItemProps = {
   icon: LucideIcon;
+  label: string;
   active: boolean;
   onPress: () => void;
-  accessibilityLabel: string;
   iconSize: number;
+  labelSize: number;
   indicatorWidth: number;
 };
 
 function TabItem({
   icon: Icon,
+  label,
   active,
   onPress,
-  accessibilityLabel,
   iconSize,
+  labelSize,
   indicatorWidth,
 }: TabItemProps) {
   const { colors } = useTheme();
@@ -98,9 +102,9 @@ function TabItem({
     <AnimatedPressable
       onPress={onPress}
       style={styles.tab}
-      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={label}
       accessibilityState={{ selected: active }}
     >
       <Animated.View style={iconStyle}>
@@ -110,6 +114,20 @@ function TabItem({
           strokeWidth={active ? 2.1 : 1.75}
         />
       </Animated.View>
+
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.label,
+          {
+            fontSize: labelSize,
+            color: active ? colors.primary : colors.textSecondary,
+            fontWeight: active ? "700" : "500",
+          },
+        ]}
+      >
+        {label}
+      </Text>
 
       {active ? (
         <View
@@ -190,9 +208,10 @@ export function HomeBottomNav({
           <TabItem
             key={tab.key}
             icon={tab.icon}
+            label={tab.label}
             active={activeTab === tab.key}
-            accessibilityLabel={tab.label}
             iconSize={metrics.iconSize}
+            labelSize={metrics.labelSize}
             indicatorWidth={metrics.indicatorWidth}
             onPress={() => {
               if (activeTab !== tab.key) goTo(tab.href);
@@ -232,10 +251,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     height: "100%",
+    gap: 3,
+    paddingTop: 4,
+  },
+  label: {
+    letterSpacing: 0.1,
   },
   activeBar: {
     position: "absolute",
-    bottom: 6,
+    bottom: 4,
     left: "50%",
     height: 2.5,
     borderRadius: 999,
